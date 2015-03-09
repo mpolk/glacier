@@ -123,13 +123,13 @@ list() {
     FILTER=$(makeFileFilter $@)
     trace "filter=\"$FILTER\""
 
-    N=0
-    TOTAL=0
     ROWS=$(\
 	sql "SELECT filename, dir, ctime, mtime, fsize, id, checksum FROM archives \
 		 WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER ORDER BY dir, filename" \
     )
-    while IFS="|" read NAME DIR CTIME MTIME FSIZE ARCHIVE_ID CHECKSUM; do
+    N=0
+    TOTAL=0
+    [ -n "$ROWS" ] && while IFS="|" read NAME DIR CTIME MTIME FSIZE ARCHIVE_ID CHECKSUM; do
 	CTIME=$(date --date=@$CTIME +"%Y-%m-%d %H:%M:%S")
 	MTIME=$(date --date=@$MTIME +"%Y-%m-%d %H:%M:%S")
 	[ -n "$DIR" ] && DIR="$DIR/"
@@ -148,8 +148,7 @@ list() {
 	((N++))
 	((TOTAL+=$FSIZE))
     done <<< "$ROWS"
-    ((TOTAL=$TOTAL/1024/1024))
-    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $TOTAL
+    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $(($TOTAL/1024/1024))
 } #list
 
 
@@ -412,8 +411,7 @@ showInventory() {
 	((N++))
 	((TOTAL+=$SIZE))
     done <<<"$ROWS"
-    ((TOTAL=$TOTAL/1024/1024))
-    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $TOTAL
+    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $(($TOTAL/1024/1024))
 } #showInventory
 
 
