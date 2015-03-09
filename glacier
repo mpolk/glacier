@@ -618,7 +618,7 @@ download() {
 	    continue
 	fi
 
-	if [ -z "$OUTFULE" ]; then
+	if [ -z "$OUTFILE" ]; then
 	    FILE=$DIR$NAME
 	elif [ ${OUTFILE: -1} == '/' ]; then
 	    FILE=$OUTFILE$NAME
@@ -723,6 +723,9 @@ RCFILE=$(dirname $0)/.$(basename $0)
 [ -f $RCFILE -a -r $RCFILE ] || RCFILE=/usr/local/etc/$(basename $0)
 if [ -f $RCFILE -a -r $RCFILE ]; then
     . $RCFILE
+    export AWS_ACCESS_KEY_ID
+    export AWS_SECRET_ACCESS_KEY
+    export AWS_DEFAULT_REGION
 elif [ -z "$VAULT" -o \
        -z "$AWS_ACCESS_KEY_ID" -o \
        -z "$AWS_SECRET_ACCESS_KEY" -o \
