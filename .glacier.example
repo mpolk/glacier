@@ -1,0 +1,9 @@
+# Настроечные параметры (подставьте сюда свои значения):
+VAULT=some-vault-deep-in-the-mounatins-of-oregon
+AWS_ACCESS_KEY_ID=MYPUBLICKEY
+AWS_SECRET_ACCESS_KEY=SomESecreTKeyyyyyyyyyyyyYYYYY
+AWS_DEFAULT_REGION=us-west-2
+
+# Местонахождение файла БД. Для полноценной работы это файл должен быть доступен для записи.
+# Для ограниченного подмножества операция (ls, jobs) достаточно доступа только на чтение.
+DB=/var/local/aws/glacier.sqlite

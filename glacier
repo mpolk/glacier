@@ -1,0 +1,827 @@
+#!/bin/bash
+#----------------------------------------------------------------------------------
+# Скрипт для манипуляций с облачным хранилищем Amazon Web Services (AWS) Glacier
+# Для получения кратких инструкций по использованию запустите его без параметров
+#----------------------------------------------------------------------------------
+
+# Коды завершения процедур
+readonly S_SUCCESS=0
+readonly S_OK=0
+readonly S_NO=1
+readonly E_FAIL=1
+readonly E_CANCELLED=2
+readonly E_NOSUCHOBJECT=3
+readonly E_ALREADYEXISTS=4
+readonly E_NOTREADYYET=5
+
+# Коды состояния заданий для AWS Glacier
+readonly JST_INPROGRESS=0
+readonly JST_COMPLETED=1
+readonly JST_FAILED=2
+readonly JST_CANCELLED=3
+
+
+assertRWAccess() {
+    if [ -n "$READONLY" ]; then
+	echo Отсутствует доступ на запись в БД! Операция запрещена.
+	return $E_FAIL
+    fi
+
+    return $S_OK
+} #assertRWAccess
+
+
+trace() {
+    [ -n "$DEBUG" ] && echo "[DEBUG] $*"
+} #trace
+
+
+sql() {
+    sqlite3 $DB "$*"
+} #sql
+
+
+parseJson() {
+    ARGS=$@
+    while read LINE; do
+	trace "LINE=$LINE"
+	set -- $ARGS
+	while [ $# -gt 0 ]; do
+	    VAR=${1%%:*}
+	    FIELD=${1#*:}
+	    trace "#=$#; VAR=$VAR; FIELD=$FIELD"
+	    shift
+	    if grep -Pq "^\s*\"$FIELD\":\s\"(\S+)\",?\s*$" <<<$LINE; then
+		eval $VAR=$(grep -Po '(?<=":\s")[^"]+' <<<$LINE) #"
+		trace "$VAR:=${!VAR}"
+		break
+	    fi
+	    if grep -Pq "^\s*\"$FIELD\":\s(\S+),?\s*$" <<<$LINE; then
+		eval $VAR=$(grep -Po '(?<=":\s)[^,]+' <<<$LINE) #'
+		trace "$VAR:=${!VAR}"
+		break
+	    fi
+	done
+    done
+} #parseJson
+
+
+upload() {
+    assertRWAccess || return $E_FAIL
+
+    FILENAME=$(basename $1)
+    DIR=$(dirname $(readlink -e $1))
+    FSIZE=$(stat -L -c%s $1)
+    CTIME=$(stat -L -c%W $1)
+    MTIME=$(stat -L -c%Y $1)
+    #read CHECKSUM DUMMY <<<$(sha256sum $1)
+    echo -n "$1 -> $VAULT ... "
+    REPLY=$(\
+	aws glacier upload-archive --account-id=- --archive-description="$DIR/$FILENAME" --output=json $DEBUG \
+	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" --body="$1" \
+#	    --vault-name="$VAULT" --checksum="$CHECKSUM" --region="$AWS_DEFAULT_REGION" --body="$1" \
+    )
+    if [ $? != 0 ]; then
+	echo
+	echo Неудачная загрузка архива!
+	return $E_FAIL
+    fi
+    echo OK
+
+    parseJson ARCHIVE_ID:archiveId CHECKSUM:checksum LOCATION:location <<< "$REPLY"
+
+    sql "INSERT INTO archives(id, vault_id, filename, dir, fsize, ctime, mtime, checksum, location) \
+	    VALUES ('$ARCHIVE_ID', 1, '$FILENAME', '$DIR', $FSIZE, $CTIME, $MTIME, '$CHECKSUM', '$LOCATION')"
+    trace "ArchiveID: $ARCHIVE_ID"
+    trace "CheckSum:  $CHECKSUM"
+    trace "Location:  $LOCATION"
+} #upload
+
+
+makeFileFilter()
+{
+    FILTER=""
+    if [ $# -gt 0 ]; then
+	while [ -n "$1" ]; do
+	    FILENAME=$(basename $1 | sed 's/\*/%/g; s/\?/_/g')
+	    DIR=$(dirname $1 | sed 's/\*/%/g; s/\?/_/g')
+	    [ -n "$FILTER" ] && FILTER="$FILTER OR "
+	    FILTER="$FILTER(filename LIKE '$FILENAME'"
+	    [ "$DIR" != "." ] && FILTER="$FILTER AND dir LIKE '$DIR'"
+	    FILTER="$FILTER)"
+	    shift
+	done
+	FILTER="AND ($FILTER)"
+    fi
+
+    echo -n $FILTER
+} #makeFileFilter
+
+
+list() {
+    trace "ARGS=\"$*\""
+    FILTER=$(makeFileFilter $@)
+    trace "filter=\"$FILTER\""
+
+    sql "SELECT filename, dir, ctime, mtime, fsize, id, checksum FROM archives \
+            WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER ORDER BY dir, filename" | \
+    while IFS="|" read NAME DIR CTIME MTIME FSIZE ARCHIVE_ID CHECKSUM; do
+	CTIME=$(date --date=@$CTIME +"%Y-%m-%d %H:%M:%S")
+	MTIME=$(date --date=@$MTIME +"%Y-%m-%d %H:%M:%S")
+	[ -n "$DIR" ] && DIR="$DIR/"
+	case "$LSMODE" in
+	    LONG)
+		printf "%12d  %s  %s%s\n" "$FSIZE" "$MTIME" "$DIR" "$NAME"
+		;;
+	    VERY_LONG)
+		printf "%12d  %s  %s  %s%s\n" "$FSIZE" "$CTIME" "$MTIME" "$DIR" "$NAME"
+		printf "     id: %s\n" "$ARCHIVE_ID"
+		printf "     checksum: %s\n" "$CHECKSUM"
+		;;
+	    *)
+		echo $NAME;;
+	esac
+    done
+} #list
+
+
+listJobs() {
+    FILTER=""
+    [ -z "$SHOWALL" ] && FILTER="AND status = $JST_INPROGRESS"
+
+    trace "filter=\"$FILTER\""
+    sql "SELECT jobs.id, submission_time, filename, dir, status FROM jobs \
+	    LEFT JOIN archives ON archives.id = jobs.archive_id
+            WHERE jobs.vault_id = $VAULT_ID $FILTER ORDER BY submission_time" | \
+    while IFS="|" read ID TIME NAME DIR STATUS; do
+	[ -z "$NAME" ] && NAME="<ИНВЕНТАРИЗАЦИЯ>"
+	TIME=$(date --date=@$TIME +"%Y-%m-%d %H:%M:%S")
+	[ -n "$DIR" ] && DIR="$DIR/"
+	case "$STATUS" in
+	    $JST_INPROGRESS) STATUS="in-progress";;
+	    $JST_COMPLETED)  STATUS="completed";;
+	    $JST_FAILED)     STATUS="failed";;
+	    $JST_CANCELLED)  STATUS="cancelled";;
+	esac
+	if [ -z "$SHOWALL" ]; then
+	    printf "%s  %s%s\n" "$TIME" "$DIR" "$NAME"
+	else
+	    printf "%s  %-14s %s%s\n" "$TIME" "$STATUS" "$DIR" "$NAME"
+	fi
+	case "$LSMODE" in
+	    VERY_LONG)
+		printf "     id: %s\n" "$ID"
+		;;
+	    *)
+		;;
+	esac
+    done
+} #listJobs
+
+
+remove() {
+    assertRWAccess || return $E_FAIL
+
+    FILENAME=$(basename $1)
+    DIR=$(dirname $1)
+
+    QUERY="SELECT count(*) FROM archives WHERE NOT is_deleted AND filename = '$FILENAME'"
+    if [ "$DIR" != "." ]; then
+	QUERY="$QUERY AND dir = '$DIR'"
+    fi
+    COUNT=$(sql "$QUERY")
+
+    case $COUNT in
+	0)
+	    echo Нет такого архива: $1!
+	    return $E_NOSUCHOBJECT
+	    ;;
+	1)
+	    echo -n "Действительно удалить архив $1? Вы уверены? (yes/no) "
+	    while true; do
+		read
+		case "$REPLY" in
+		    yes) break;;
+		    no) return $E_CANCELLED;;
+		    *) echo -n "  yes or no? ";;
+		esac
+	    done
+	    ;;
+	*)
+	    echo -n "Найдено $COUNT архив(-а,-ов) с именем $1? Вы действительно хотите удалить их всех? (yes/no) "
+	    while true; do
+		read
+		case "$REPLY" in
+		    yes) break;;
+		    no) return $E_CANCELLED;;
+		    *) echo -n "  yes or no? ";;
+		esac
+	    done
+	    echo -n "Вы действительно хотите удалить все $COUNT архив(-а,-ов)?? (yes/no) "
+	    while true; do
+		read
+		case "$REPLY" in
+		    yes) break;;
+		    no) return $E_CANCELLED;;
+		    *) echo -n "  yes or no? ";;
+		esac
+	    done
+	    ;;
+    esac
+
+    QUERY="SELECT id FROM archives WHERE NOT is_deleted AND filename = '$FILENAME'"
+    [ "$DIR" != "." ] && QUERY="$QUERY AND dir = '$DIR'"
+    trace $QUERY
+    IDS=$(sql "$QUERY")
+
+    while read ARCHIVE_ID; do
+	echo Удаляем архив \"$ARCHIVE_ID\"
+	if aws glacier delete-archive --account-id=- --archive-id="$ARCHIVE_ID" $DEBUG \
+	     --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION"
+	then
+	    sql "UPDATE archives SET is_deleted = 1 WHERE id = '$ARCHIVE_ID'"
+	fi
+    done <<<"$IDS"
+} #remove
+
+
+requestInventory() {
+    assertRWAccess || return $E_FAIL
+    
+    COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
+    if [ $COUNT != 0 -a -z "$FORCE" ]; then
+	echo "Запрос на инвентаризацию уже отправлен в AWS. Отправка еще одного запроса вряд ли целесообразна."
+	echo "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f"
+	return $E_ALREADYEXISTS
+    fi
+
+    REPLY=$(\
+	aws glacier initiate-job --account-id=- --output=json $DEBUG \
+	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
+	    --job-parameters="{\"Type\": \"inventory-retrieval\", \"Format\": \"CSV\"}" \
+    )
+    if [ $? != 0 ]; then
+	echo Неудача при инициализации задания!
+	return $E_FAIL
+    fi
+
+    parseJson JOB_ID:jobId LOCATION:location <<< "$REPLY"
+
+    [ $COUNT != 0 ] && sql "UPDATE jobs SET status = $JST_CANCELLED \
+                                WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS"
+    sql "INSERT INTO jobs(id, vault_id, submission_time, location) \
+	    VALUES ('$JOB_ID', $VAULT_ID, $(date +%s), '$LOCATION')"
+    echo Запрос на инвентаризацию направлен в хранилище
+} #requestInventory
+
+
+loadInventory() {
+    echo Обновляем результаты инвентаризации хранилища...
+    assertRWAccess || return $E_FAIL
+
+    JOB_ID=$(sql "SELECT id FROM jobs \
+                      WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS \
+                      ORDER BY submission_time DESC \
+                      LIMIT 1")
+    trace "JOB_ID=$JOB_ID"
+
+    REPLY=$(\
+	aws glacier describe-job --account-id=- --output=json $DEBUG \
+	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
+	    --job-id="$JOB_ID" \
+    )
+    if [ $? != 0 ]; then
+	echo Неудача при попытке получить состояние задания!
+	sql "UPDATE jobs SET status = $JST_FAILED WHERE id = '$JOB_ID'"
+	return $E_FAIL
+    fi
+
+    parseJson COMPLETED:Completed <<< "$REPLY"
+    trace "COMPLETED=$COMPLETED"
+    if [ "$COMPLETED" != "true" ]; then
+	echo Запрос на инветаризацию еще не выполнен, данные не обновлены
+	return $E_NOTREADYYET
+    fi
+
+    TMPFILE=$(mktemp --tmpdir glacier-inventory-XXXXXXXX.csv)
+    REPLY=$(\
+	aws glacier get-job-output --account-id=- --output=json $DEBUG \
+	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
+	    --job-id="$JOB_ID" $TMPFILE \
+    )
+    if [ $? != 0 ]; then
+	echo Неудача при попытке загрузить результаты инвентаризации!
+	return $E_FAIL
+    fi
+
+    sql "DELETE FROM inventory WHERE vault_id = $VAULT_ID"
+    I=0
+    while read LINE; do
+	((I++ == 0)) && continue
+	trace $LINE
+	IFS=',' read ARCHIVE_ID DESCRIPTION CTIME SIZE CHECKSUM <<<"$LINE"
+	trace "ARCHIVE_ID=$ARCHIVE_ID"
+	DESCRIPTION=${DESCRIPTION#\"}
+	DESCRIPTION=${DESCRIPTION%\"}
+	trace "DESCRIPTION=$DESCRIPTION"
+	CTIME=$(date --date="$CTIME" +%s)
+	trace "CTIME=$CTIME"
+	trace "SIZE=$SIZE"
+	trace "CHECKSUM=$CHECKSUM"
+	sql "INSERT INTO inventory(vault_id, seq_no, archive_id, description, ctime, size, checksum) \
+		VALUES ($VAULT_ID, $I, '$ARCHIVE_ID', '$DESCRIPTION', $CTIME, $SIZE, '$CHECKSUM')"
+    done < $TMPFILE
+
+    sql "UPDATE jobs SET status = $JST_COMPLETED WHERE id = '$JOB_ID';\
+         UPDATE vaults SET inventory_time = $(date +%s)"
+    rm $TMPFILE
+    return $S_OK
+} #loadInventory
+
+
+checkInventoryInternal()
+{
+    INVENTORY_TIME=$(sql "SELECT inventory_time FROM vaults WHERE id = $VAULT_ID")
+    COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
+    if [ -z "$INVENTORY_TIME" -a $COUNT == 0 ]; then
+	echo На данный момент не было выполнено ни одной инвентаризации.
+	echo Сейчас инвентаризация хранилища будет запрошена, а результаты вы сможете
+	echo увидеть позже, ориентировочно через два часа.
+	requestInventory
+	return $E_NOTREADYYET
+    fi
+
+    if [ $COUNT != 0 ]; then
+	loadInventory && INVENTORY_TIME=$(sql "SELECT inventory_time FROM vaults WHERE id = $VAULT_ID")
+    fi
+
+    if [ -z "$INVENTORY_TIME" ]; then
+	echo На данный момент не было выполнено ни одной инвентаризации.
+	echo Инвентаризация хранилища была запрошена ранее, но результаты ее загрузить не удалось.
+	echo Попробуйте запросить инвентаризацию еще раз.
+	return $E_FAIL
+    fi
+    
+    return $S_OK
+} #checkInventoryInternal
+
+
+checkInventory()
+{
+    COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
+    if [ $COUNT == 0 ]; then
+	echo На данный момент нет ни одного невыполненного запроса на инвентаризацию
+	return $E_FAIL
+    fi
+
+    loadInventory && echo Результаты инвентаризации успешно загружены в БД
+} #checkInventory
+
+
+showInventory() {
+    checkInventoryInternal || return $?
+
+    echo Инвентаризация от $(date --date=@$INVENTORY_TIME +"%Y-%m-%d %H:%M")
+    echo
+    N=0
+    TOTAL=0
+    ROWS=$(sql "SELECT archive_id, description, ctime, size, checksum FROM inventory \
+	             WHERE vault_id = $VAULT_ID ORDER BY seq_no")
+    while IFS='|' read ARCHIVE_ID DESCRIPTION CTIME SIZE CHECKSUM; do
+	CTIME=$(date --date=@$CTIME +"%Y-%m-%d %H:%M:%S")
+	case $LSMODE in
+	    LONG)
+		printf "%12d  %s  %s\n" "$SIZE" "$CTIME" "$DESCRIPTION"
+		;;
+	    VERY_LONG)
+		printf "%12d  %s  %s\n" "$SIZE" "$CTIME" "$DESCRIPTION"
+		printf "     id: %s\n" "$ARCHIVE_ID"
+		printf "     checksum: %s\n" "$CHECKSUM"
+		;;
+	    *)
+		echo $DESCRIPTION;;
+	esac
+	((N++))
+	((TOTAL+=$SIZE))
+    done <<<"$ROWS"
+    ((TOTAL=$TOTAL/1024/1024))
+    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $TOTAL
+} #showInventory
+
+
+askAboutRepair() {
+    [ -z "$CHECKONLY" ] || return $S_NO
+    [ -n "$ALWAYSYES" ] && return $S_OK
+    
+    read -p "$1 (y/N) "
+    SHOPT_RESTORE=$(shopt -p nocasematch)
+    shopt -qs nocasematch
+    case $REPLY in
+	y|yes|д|да|1)
+	    $SHOPT_RESTORE
+	    return $S_OK
+	    ;;
+	*)
+	    $SHOPT_RESTORE
+	    return $S_NO
+	    ;;
+    esac
+} #askAboutRepair
+
+
+synchronize() {
+    [ -z "$CHECKONLY" ] && ! assertRWAccess && return $E_FAIL
+    checkInventoryInternal || return $?
+
+    ROWS=$(\
+	sql "SELECT archive_id, description, size, checksum FROM inventory \
+		 WHERE vault_id = $VAULT_ID ORDER BY seq_no" \
+    )
+    while IFS='|' read -u3 ARCHIVE_ID DESCRIPTION SIZE CHECKSUM; do
+	CAT_ROW=$(sql "SELECT filename, dir, checksum, fsize, is_deleted FROM archives \
+	                  WHERE id = '$ARCHIVE_ID'")
+	NAME=$(basename "$DESCRIPTION")
+	DIR=$(dirname "$DESCRIPTION")
+	[ "$DIR" == '.' ] && DIR=
+	
+	if [ -z "$CAT_ROW" ]; then
+	    echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$DESCRIPTION\" имеется в хранилище, но отсутствует в каталоге
+	    askAboutRepair "Занести его в каталог?" || continue
+	    if [ -z "$DIR" ]; then
+		DIR=NULL
+	    else
+		DIR="'$DIR'"
+	    fi
+	    sql "INSERT INTO archives(id, vault_id, filename, dir, fsize, checksum) \
+	             VALUES ('$ARCHIVE_ID', $VAULT_ID, '$NAME', $DIR, $SIZE, '$CHECKSUM')"
+	    continue
+	fi
+	
+	IFS='|' read NAME0 DIR0 CHECKSUM0 FSIZE0 IS_DELETED <<<"$CAT_ROW"
+	trace "NAME0=$NAME0"
+	trace "DIR0=$DIR0"
+	trace "CHECKSUM0=$CHECKSUM0"
+	trace "FSIZE0=$FSIZE0"
+	trace "IS_DELETED=$IS_DELETED"
+	if [ "$IS_DELETED" != 0 ]; then
+	    echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$DESCRIPTION\" имеется в хранилище, но удален из каталога
+	    askAboutRepair "Восстановить его?" && sql "UPDATE archives SET is_deleted = 0 WHERE id = '$ARCHIVE_ID'"
+	fi
+	
+	if [ "$NAME0" != "$NAME" ]; then
+	    echo [ПРЕДУПРЕЖДЕНИЕ] Имя файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
+	    echo "  В хранилище: $NAME"
+	    echo "  В каталоге:  $NAME0"
+	    askAboutRepair "Исправить данные в каталоге?" && \
+		sql "UPDATE archives SET filename = '$NAME' WHERE id = '$ARCHIVE_ID'"
+	fi
+	
+	if [ -n "$DIR" -a "$DIR0" != "$DIR" ]; then
+	    echo [ПРЕДУПРЕЖДЕНИЕ] Маршрут файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
+	    echo "  В хранилище: $DIR"
+	    echo "  В каталоге:  $DIR0"
+	    askAboutRepair "Исправить данные в каталоге?" && \
+		sql "UPDATE archives SET dir = '$DIR' WHERE id = '$ARCHIVE_ID'"
+	fi
+	
+	if [ "$FSIZE0" != "$SIZE" ]; then
+	    echo [ПРЕДУПРЕЖДЕНИЕ] Размер файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
+	    echo "  В хранилище: $SIZE"
+	    echo "  В каталоге:  $FSIZE0"
+	    askAboutRepair "Исправить данные в каталоге?" && \
+		sql "UPDATE archives SET fsize = $SIZE WHERE id = '$ARCHIVE_ID'"
+	fi
+	
+	if [ "$CHECKSUM0" != "$CHECKSUM" ]; then
+	    echo [ПРЕДУПРЕЖДЕНИЕ] Контрольная сумма файла архива \"$DESCRIPTION\" не совпадает с таковой в каталоге:
+	    echo "  В хранилище: $CHECKSUM"
+	    echo "  В каталоге:  $CHECKSUM0"
+	    askAboutRepair "Исправить данные в каталоге?" && \
+		sql "UPDATE archives SET checksum = '$CHECKSUM' WHERE id = '$ARCHIVE_ID'"
+	fi
+    done 3<<<"$ROWS"
+
+    ROWS=$(\
+	sql "SELECT id, filename, dir FROM archives \
+		 WHERE vault_id = $VAULT_ID AND NOT is_deleted AND \
+		    NOT exists( SELECT 1 FROM inventory \
+		                   WHERE vault_id = $VAULT_ID AND \
+		                         archive_id = archives.id )" \
+    )
+    [ -n "$ROWS" ] && while IFS='|' read -u3 ARCHIVE_ID NAME DIR; do
+	trace "ARCHIVE_ID=$ARCHIVE_ID"
+	trace "NAME=$NAME"
+	trace "DIR=$DIR"
+	[ -n "$DIR" ] && NAME="$DIR/$NAME"
+	echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$NAME\" числится в каталоге, но отсутствует в хранилище
+	askAboutRepair "Удалить его из каталога?" && sql "DELETE FROM archives WHERE id = '$ARCHIVE_ID'"
+    done 3<<<"$ROWS"
+} #synchronize
+
+
+requestDownload() {
+    assertRWAccess || return $E_FAIL
+    trace "ARGS=\"$*\""
+    FILTER=$(makeFileFilter $@)
+    trace "filter=\"$FILTER\""
+
+    ROWS=$(sql "SELECT id, filename, dir FROM archives WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER")
+    if [ -z "$ROWS" ]; then
+	echo "Указанный файл(-ы) в каталоге отсутствует!"
+	return $E_FAIL
+    fi
+
+    while IFS='|' read ARCHIVE_ID NAME DIR; do
+	[ -n "$DIR" ] && DIR="$DIR/"
+	COUNT=$(sql "SELECT count(1) FROM jobs WHERE archive_id = '$ARCHIVE_ID' AND status = $JST_INPROGRESS") #"
+	if [ $COUNT != 0 -a -z "$FORCE" ]; then
+	    echo "Запрос на выгрузку файла $DIR$NAME уже отправлен в AWS. Отправка еще одного запроса вряд ли целесообразна."
+	    echo "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f"
+	    continue
+	fi
+
+    REPLY=$(\
+	aws glacier describe-job --account-id=- --output=json $DEBUG \
+	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
+	    --job-id="$JOB_ID" \
+    )
+    if [ $? != 0 ]; then
+	echo Неудача при попытке получить состояние задания!
+	sql "UPDATE jobs SET status = $JST_FAILED WHERE id = '$JOB_ID'"
+	return $E_FAIL
+    fi
+
+    parseJson COMPLETED:Completed <<< "$REPLY"
+    trace "COMPLETED=$COMPLETED"
+    if [ "$COMPLETED" != "true" ]; then
+	echo Запрос на инветаризацию еще не выполнен, данные не обновлены
+	return $E_NOTREADYYET
+    fi
+
+    TMPFILE=$(mktemp --tmpdir glacier-inventory-XXXXXXXX.csv)
+    REPLY=$(\
+	aws glacier get-job-output --account-id=- --output=json $DEBUG \
+	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
+	    --job-id="$JOB_ID" $TMPFILE \
+    )
+    if [ $? != 0 ]; then
+	echo Неудача при попытке загрузить результаты инвентаризации!
+	return $E_FAIL
+    fi
+
+	echo "Запрос на выгрузку файла \"$DIR$NAME\"направлен в хранилище"
+    done <<< "$ROWS";
+} #requestDownload
+
+
+download() {
+    assertRWAccess || return $E_FAIL
+    trace "ARGS=\"$*\""
+
+    QUERY="SELECT jobs.id, filename, dir FROM jobs \
+               JOIN archives ON archives.id = jobs.archive_id
+               WHERE jobs.vault_id = $VAULT_ID AND status = $JST_INPROGRESS"
+    if [ -n "$1" ]; then
+        FILTER=$(makeFileFilter $@)
+        trace "filter=\"$FILTER\""
+	QUERY="$QUERY $FILTER"
+    fi
+
+    ROWS=$(sql "$QUERY")
+    if [ -z "$ROWS" ]; then
+    	if [ -z "$1" ]; then
+	    echo "Какие-либо невыполненные задания на выгрузку в каталоге отсутствует!"
+	else
+	    echo "Запрос(-ы) на выгрузку для указанного файла(-ов) в каталоге отсутствуют!"
+	    echo "Следует сначала запросить выгрузку файла(-ов) с помощью команды \"request\""
+	fi
+	return $E_FAIL
+    fi
+
+    while IFS='|' read JOB_ID NAME DIR; do
+	[ -n "$DIR" ] && DIR="$DIR/"
+	REPLY=$(\
+	    aws glacier describe-job --account-id=- --output=json $DEBUG \
+		--vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
+		--job-id="$JOB_ID" \
+	)
+	if [ $? != 0 ]; then
+	    echo Неудача при попытке получить состояние задания!
+	    #sql "UPDATE jobs SET status = $JST_FAILED WHERE id = '$JOB_ID'"
+	    return $E_FAIL
+	fi
+
+	parseJson COMPLETED:Completed <<< "$REPLY"
+	trace "COMPLETED=$COMPLETED"
+	if [ "$COMPLETED" != "true" ]; then
+	    echo Запрос на выгрузку файла $DIR$NAME еще не выполнен, файл пропущен
+	    continue
+	fi
+
+	if [ -z "$OUTFULE" ]; then
+	    FILE=$DIR$NAME
+	elif [ ${OUTFILE: -1} == '/' ]; then
+	    FILE=$OUTFILE$NAME
+	else
+	    FILE=$OUTFILE
+	fi
+	I=1
+	FILE_ORIG=$FILE
+	while [ -a "$FILE" ]; do
+	    FILE="$FILE_ORIG.((I++))"
+	done
+	echo -n "$VAULT:$DIR$NAME -> $FILE ... "
+	REPLY=$(\
+	    aws glacier get-job-output --account-id=- --output=json $DEBUG \
+		--vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
+		--job-id="$JOB_ID" $FILE \
+	)
+	if [ $? != 0 ]; then
+	    echo
+	    echo Неудача при попытке выгрузить файл $DIR$NAME!
+	    continue
+	fi
+
+	sql "UPDATE jobs SET status = $JST_COMPLETED WHERE id = '$JOB_ID';\
+	     UPDATE vaults SET inventory_time = $(date +%s)"
+	echo "OK"
+
+    done <<< "$ROWS";
+} #download
+
+
+initDB() {
+    echo -n Инициализируем БД...
+    if sql "\
+	CREATE TABLE vaults(id integer primary key, name text, arn text, inventory_time integer); \
+	INSERT INTO vaults(id, name) VALUES($VAULT_ID, '$VAULT'); \
+	CREATE TABLE archives(id text primary key, vault_id int references vaults(id), \
+	                      filename text, dir text, checksum text, location text, \
+	                      ctime int default 0, mtime int default 0, fsize int, \
+	                      is_deleted boolean default 0); \
+	CREATE INDEX archives_by_name on archives (filename); \
+	CREATE INDEX archives_by_path on archives (dir, filename); \
+	CREATE TABLE jobs(id text not null primary key, vault_id int references vaults(id), \
+                          submission_time int, archive_id int references archives(id), location text, \
+                          status int default 0); \
+	CREATE INDEX jobs_by_archive on jobs(archive_id, submission_time); \
+	CREATE INDEX jobs_by_time on jobs(vault_id, submission_time); \
+	CREATE TABLE inventory(vault_id int references vaults(id), seq_no integer, archive_id text, \
+                               description text, ctime integer, size integer, checksum text, \
+                               primary key (vault_id, seq_no)); \
+	"
+    then
+	echo
+    else
+	echo
+	echo Не могу проинициализировать базу даных!
+	exit $E_FAIL
+    fi
+} #initBD
+
+
+showUsage() {
+    echo
+    echo glacier - скрипт для выполнения операций с хранилищем AWS Glacier
+    echo
+    echo "  Варианты использования скрипта:"
+    echo "    glacier upload <FILE>,..          -- загрузить файл(-ы) в хранилище"
+    echo "    glacier ls [-lL] [<FILE>,..]      -- показать листинг каталога (что у нас уже загружено)"
+    echo "    glacier dir [-lL] [<FILE>,..]     -- то же самое, что и \"ls\""
+    echo "    glacier rm <FILE>,..              -- удалить архив(-ы) из хранилища"
+    echo "    glacier del <FILE>,..             -- то же самое, что и \"rm\""
+    echo "    glacier request <FILE>,..         -- запросить выгрузку файла(-ов) из хранилища"
+    echo "    glacier request -                 -- запросить инвентаризацию хранилища"
+    echo "    glacier download [-o] [<FILE>,..] -- выгрузить файла(-ов) из хранилища (после выполнения запроса)"
+    echo "      -o <OUT-FILE>                   -- выгрузить файл под другим именем/в другое место"
+    echo "    glacier inventory [-rflLс]        -- показать результаты инвентаризации"
+    echo "      -r                              -- запросить инвентаризацию, то же, что \"request -\""
+    echo "      -f                              -- запросить новую инвентаризацию, даже если предыдущий"
+    echo "                                         запрос значится невыполненным"
+    echo "      -с                              -- проверить результат выполнения запроса и в случае успеха"
+    echo "                                         сохранить его в БД"
+    echo "    glacier sync [-cy]                -- синхронизировать каталог с результатами последней инвентаризации"
+    echo "      -с                              -- выполнить проверку на расхождение, но не писать ничего в БД"
+    echo "      -y                              -- автоматически подразумевать положительный ответ на все вопросы"
+    echo "    glacier jobs [-lLa]               -- показать список заданий на выгрузку файлов и инвентаризацию"
+    echo "      -a                              -- показывать все задания (в том числе и завершенные)"
+    echo
+    echo "  Общие ключи для всех команд:"
+    echo "      -d                              -- отладочный режим"
+    echo "  Общие ключи для команд листинга и инвентаризации:"
+    echo "      -l                              -- длинный режим листинга каталога или инвентаризации"
+    echo "      -L                              -- еще более длинный режим листинга каталога или инвентаризации"
+    echo
+} #showUsage
+
+
+# Here we are starting
+
+# Look for the rc-file with sensitive local settings
+RCFILE=$(dirname $0)/.$(basename $0)
+[ ! -r $RCFILE ] && RCFILE=~/.$(basename $0)
+[ ! -r $RCFILE ] && RCFILE=/usr/local/etc/$(basename $0)
+if [ -r $RCFILE ]; then
+    . $RCFILE
+elif [ -z "$VAULT" -o \
+       -z "$AWS_ACCESS_KEY_ID" -o \
+       -z "$AWS_SECRET_ACCESS_KEY" -o \
+       -z "$AWS_DEFAULT_REGION" -o 
+       -z "$DB" ]; then
+    echo Cannot read config file!
+    exit $E_FAIL
+fi
+
+
+READONLY=
+if [ ! -f $DB ]; then
+    initDB
+elif [ ! -r $DB ]; then
+    echo База данных недоступна для чтения!
+    exit 1
+elif [ ! -w $DB ]; then
+    READONLY=1
+fi
+
+
+OPTSTRING=dlLrfcyao:
+ARGS=$(getopt $OPTSTRING $*)
+if [ $? != 0 ]; then
+    showUsage
+    exit $E_FAIL
+fi
+
+VAULT_ID=1
+DEBUG=
+FORCE=
+INVENTORY_OP=show
+SHOWALL=
+OUTFILE=
+set -- $ARGS
+while getopts $OPTSTRING OPTION; do
+    case $OPTION in
+	d) DEBUG=--debug;;
+	l) LSMODE=LONG;;
+	L) LSMODE=VERY_LONG;;
+	r) INVENTORY_OP=request;;
+	f) FORCE=1;;
+	c) CHECKONLY=1;;
+	y) ALWAYSYES=1;;
+	a) SHOWALL=1;;
+	o) OUTFILE=$OPTARG;;
+    esac
+done
+
+shift $(($OPTIND-1))
+
+
+CMD=$1
+case $CMD in
+    up|upl|uplo|uploa|upload)
+	while shift && [ -n "$1" ]; do
+	    upload $1
+	done
+	;;
+    ls|dir)
+	shift
+	list $@
+	;;
+    rm|del)
+	while shift && [ -n "$1" ]; do
+	    remove $1
+	done
+	;;
+    req|requ|reque|reques|request)
+	shift
+	if [ -z "$1" ]; then
+	    echo 'Команда request требует обязательного параиетра (шаблон имени файла или "-")'
+	    exit $E_FAIL
+	elif [ "$1" == '-' ]; then
+	    requestInventory
+	else
+	    requestDownload $@
+	fi
+	;;
+    dow|down|downl|downlo|downloa|download)
+	shift
+	download $@
+	;;
+    inv|inve|inven|invent|invento|inventor|inventory)
+	if [ $INVENTORY_OP == "request" ]; then
+	    requestInventory
+	elif [ -n "$CHECKONLY" ]; then
+	    checkInventory
+	else
+	    showInventory
+	fi
+	;;
+    sy|syn|sync)
+	synchronize
+	;;
+    j|jo|job|jobs)
+	listJobs
+	;;
+    *)
+	showUsage
+	exit $E_FAIL;;
+esac
