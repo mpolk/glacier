@@ -123,8 +123,12 @@ list() {
     FILTER=$(makeFileFilter $@)
     trace "filter=\"$FILTER\""
 
-    sql "SELECT filename, dir, ctime, mtime, fsize, id, checksum FROM archives \
-            WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER ORDER BY dir, filename" | \
+    N=0
+    TOTAL=0
+    ROWS=$(\
+	sql "SELECT filename, dir, ctime, mtime, fsize, id, checksum FROM archives \
+		 WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER ORDER BY dir, filename" \
+    )
     while IFS="|" read NAME DIR CTIME MTIME FSIZE ARCHIVE_ID CHECKSUM; do
 	CTIME=$(date --date=@$CTIME +"%Y-%m-%d %H:%M:%S")
 	MTIME=$(date --date=@$MTIME +"%Y-%m-%d %H:%M:%S")
@@ -141,7 +145,11 @@ list() {
 	    *)
 		echo $NAME;;
 	esac
-    done
+	((N++))
+	((TOTAL+=$FSIZE))
+    done <<< "$ROWS"
+    ((TOTAL=$TOTAL/1024/1024))
+    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $TOTAL
 } #list
 
 
