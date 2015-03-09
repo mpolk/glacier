@@ -719,14 +719,14 @@ showUsage() {
 
 # Look for the rc-file with sensitive local settings
 RCFILE=$(dirname $0)/.$(basename $0)
-[ ! -r $RCFILE ] && RCFILE=~/.$(basename $0)
-[ ! -r $RCFILE ] && RCFILE=/usr/local/etc/$(basename $0)
-if [ -r $RCFILE ]; then
+[ -f $RCFILE -a -r $RCFILE ] || RCFILE=~/.$(basename $0)
+[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/usr/local/etc/$(basename $0)
+if [ -f $RCFILE -a -r $RCFILE ]; then
     . $RCFILE
 elif [ -z "$VAULT" -o \
        -z "$AWS_ACCESS_KEY_ID" -o \
        -z "$AWS_SECRET_ACCESS_KEY" -o \
-       -z "$AWS_DEFAULT_REGION" -o 
+       -z "$AWS_DEFAULT_REGION" -o \
        -z "$DB" ]; then
     echo Cannot read config file!
     exit $E_FAIL
