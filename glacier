@@ -148,26 +148,28 @@ list() {
     esac
 
     ROWS=$(\
-	sql "SELECT filename, dir, ctime, mtime, fsize, id, checksum FROM archives \
+	sql "SELECT filename, dir, ctime, mtime, fsize, id, checksum, is_deleted FROM archives \
 		 $FILTER ORDER BY dir, filename" \
     )
     N=0
     TOTAL=0
-    [ -n "$ROWS" ] && while IFS="|" read NAME DIR CTIME MTIME FSIZE ARCHIVE_ID CHECKSUM; do
+    [ -n "$ROWS" ] && while IFS="|" read NAME DIR CTIME MTIME FSIZE ARCHIVE_ID CHECKSUM IS_DELETED; do
 	CTIME=$(date --date=@$CTIME +"%Y-%m-%d %H:%M:%S")
 	MTIME=$(date --date=@$MTIME +"%Y-%m-%d %H:%M:%S")
+	MARK=
+	[ "$IS_DELETED" -ne 0 ] && MARK=(-)
 	[ -n "$DIR" ] && DIR="$DIR/"
 	case "$LSMODE" in
 	    LONG)
-		printf "%12d  %s  %s%s\n" "$FSIZE" "$MTIME" "$DIR" "$NAME"
+		printf "%12d  %s  %s%s%s\n" "$FSIZE" "$MTIME" "$MARK" "$DIR" "$NAME"
 		;;
 	    VERY_LONG)
-		printf "%12d  %s  %s  %s%s\n" "$FSIZE" "$CTIME" "$MTIME" "$DIR" "$NAME"
+		printf "%12d  %s  %s  %s%s%s\n" "$FSIZE" "$CTIME" "$MTIME" "$MARK" "$DIR" "$NAME"
 		printf "     id: %s\n" "$ARCHIVE_ID"
 		printf "     checksum: %s\n" "$CHECKSUM"
 		;;
 	    *)
-		echo $NAME;;
+		echo $MARK$NAME;;
 	esac
 	((N++))
 	((TOTAL+=$FSIZE))
