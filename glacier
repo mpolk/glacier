@@ -126,6 +126,26 @@ makeFileFilterWithAnd()
 } #makeFileFilterWithAnd
 
 
+askYesNo() {
+    [ -z "$CHECKONLY" ] || return $S_NO
+    [ -n "$ALWAYSYES" ] && return $S_OK
+    
+    read -p "$1 (y/N) "
+    SHOPT_RESTORE=$(shopt -p nocasematch)
+    shopt -qs nocasematch
+    case $REPLY in
+	y|yes|д|да|1)
+	    $SHOPT_RESTORE
+	    return $S_OK
+	    ;;
+	*)
+	    $SHOPT_RESTORE
+	    return $S_NO
+	    ;;
+    esac
+} #askYesNo
+
+
 list() {
     trace "ARGS=\"$*\""
     FILTER1=
@@ -446,26 +466,6 @@ showInventory() {
 } #showInventory
 
 
-askAboutRepair() {
-    [ -z "$CHECKONLY" ] || return $S_NO
-    [ -n "$ALWAYSYES" ] && return $S_OK
-    
-    read -p "$1 (y/N) "
-    SHOPT_RESTORE=$(shopt -p nocasematch)
-    shopt -qs nocasematch
-    case $REPLY in
-	y|yes|д|да|1)
-	    $SHOPT_RESTORE
-	    return $S_OK
-	    ;;
-	*)
-	    $SHOPT_RESTORE
-	    return $S_NO
-	    ;;
-    esac
-} #askAboutRepair
-
-
 synchronize() {
     [ -z "$CHECKONLY" ] && ! assertRWAccess && return $E_FAIL
     checkInventoryInternal || return $?
@@ -483,7 +483,7 @@ synchronize() {
 	
 	if [ -z "$CAT_ROW" ]; then
 	    echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$DESCRIPTION\" имеется в хранилище, но отсутствует в каталоге
-	    askAboutRepair "Занести его в каталог?" || continue
+	    askYesNo "Занести его в каталог?" || continue
 	    if [ -z "$DIR" ]; then
 		DIR=NULL
 	    else
@@ -502,14 +502,14 @@ synchronize() {
 	trace "IS_DELETED=$IS_DELETED"
 	if [ "$IS_DELETED" != 0 ]; then
 	    echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$DESCRIPTION\" имеется в хранилище, но удален из каталога
-	    askAboutRepair "Восстановить его?" && sql "UPDATE archives SET is_deleted = 0 WHERE id = '$ARCHIVE_ID'"
+	    askYesNo "Восстановить его?" && sql "UPDATE archives SET is_deleted = 0 WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ "$NAME0" != "$NAME" ]; then
 	    echo [ПРЕДУПРЕЖДЕНИЕ] Имя файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
 	    echo "  В хранилище: $NAME"
 	    echo "  В каталоге:  $NAME0"
-	    askAboutRepair "Исправить данные в каталоге?" && \
+	    askYesNo "Исправить данные в каталоге?" && \
 		sql "UPDATE archives SET filename = '$NAME' WHERE id = '$ARCHIVE_ID'"
 	fi
 	
@@ -517,7 +517,7 @@ synchronize() {
 	    echo [ПРЕДУПРЕЖДЕНИЕ] Маршрут файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
 	    echo "  В хранилище: $DIR"
 	    echo "  В каталоге:  $DIR0"
-	    askAboutRepair "Исправить данные в каталоге?" && \
+	    askYesNo "Исправить данные в каталоге?" && \
 		sql "UPDATE archives SET dir = '$DIR' WHERE id = '$ARCHIVE_ID'"
 	fi
 	
@@ -525,7 +525,7 @@ synchronize() {
 	    echo [ПРЕДУПРЕЖДЕНИЕ] Размер файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
 	    echo "  В хранилище: $SIZE"
 	    echo "  В каталоге:  $FSIZE0"
-	    askAboutRepair "Исправить данные в каталоге?" && \
+	    askYesNo "Исправить данные в каталоге?" && \
 		sql "UPDATE archives SET fsize = $SIZE WHERE id = '$ARCHIVE_ID'"
 	fi
 	
@@ -533,7 +533,7 @@ synchronize() {
 	    echo [ПРЕДУПРЕЖДЕНИЕ] Контрольная сумма файла архива \"$DESCRIPTION\" не совпадает с таковой в каталоге:
 	    echo "  В хранилище: $CHECKSUM"
 	    echo "  В каталоге:  $CHECKSUM0"
-	    askAboutRepair "Исправить данные в каталоге?" && \
+	    askYesNo "Исправить данные в каталоге?" && \
 		sql "UPDATE archives SET checksum = '$CHECKSUM' WHERE id = '$ARCHIVE_ID'"
 	fi
     done 3<<<"$ROWS"
@@ -551,7 +551,7 @@ synchronize() {
 	trace "DIR=$DIR"
 	[ -n "$DIR" ] && NAME="$DIR/$NAME"
 	echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$NAME\" числится в каталоге, но отсутствует в хранилище
-	askAboutRepair "Удалить его из каталога?" && sql "DELETE FROM archives WHERE id = '$ARCHIVE_ID'"
+	askYesNo "Удалить его из каталога?" && sql "DELETE FROM archives WHERE id = '$ARCHIVE_ID'"
     done 3<<<"$ROWS"
 } #synchronize
 
@@ -687,6 +687,60 @@ download() {
 } #download
 
 
+purgeFiles() {
+    COUNT=$(sql "SELECT count(1) FROM archives WHERE is_deleted")
+    if [ $COUNT == 0 ]; then
+	echo Удаленных файлов в каталоге не найдено
+	return $E_NOSUCHOBJECT
+    fi
+
+    askYesNo "Действительно вычистить все удаленные файлы ($COUNT)? Вы уверены?" || return $E_CANCELLED
+
+    sql "DELETE FROM archives WHERE is_deleted"
+    echo "Вычищено $COUNT удаленных файлов"
+} #purgeFiles
+
+
+
+purgeJobs() {
+    COUNT=$(sql "SELECT count(1) FROM jobs WHERE status <> 0")
+    if [ $COUNT == 0 ]; then
+	echo Выполненных заданий в каталоге не найдено
+	return $E_NOSUCHOBJECT
+    fi
+
+    askYesNo "Действительно вычистить все выполненные задания ($COUNT)? Вы уверены?" || return $E_CANCELLED
+
+    sql "DELETE FROM jobs WHERE status <> 0"
+    echo "Вычищено $COUNT выполненных заданий"
+} #purgeJobs
+
+
+purge() {
+    PURGE_FILES=
+    PURGE_JOBS=
+    case "$1" in
+	al|all)
+	    PURGE_FILES=1
+	    PURGE_JOBS=1
+	    ;;
+	"fi"|fil|file|files)
+	    PURGE_FILES=1
+	    ;;
+	jo|job|jobs)
+	    PURGE_JOBS=1
+	    ;;
+	*)
+	    echo "Необходимо указать, что вы хотите вычистить: files|jobs|all"
+	    return $E_FAIL
+	    ;;
+    esac
+
+    [ -n "$PURGE_FILES" ] && purgeFiles
+    [ -n "$PURGE_JOBS" ] && purgeJobs
+} #purge
+
+
 initDB() {
     echo -n Инициализируем БД...
     if sql "\
@@ -744,6 +798,7 @@ showUsage() {
     echo "      -y                              -- автоматически подразумевать положительный ответ на все вопросы"
     echo "    glacier jobs [-lLa]               -- показать список заданий на выгрузку файлов и инвентаризацию"
     echo "      -a                              -- показывать все задания (в том числе и завершенные)"
+    echo "    glacier purge files|jobs|all      -- вычистить из каталога удаленные файлы и/или выполненные задания"
     echo
     echo "  Общие ключи для всех команд:"
     echo "      -d                              -- отладочный режим"
@@ -833,7 +888,7 @@ case $CMD in
 	    remove $1
 	done
 	;;
-    req|requ|reque|reques|request)
+    re|req|requ|reque|reques|request)
 	shift
 	if [ -z "$1" ]; then
 	    echo 'Команда request требует обязательного параметра (шаблон имени файла или "-")'
@@ -848,7 +903,7 @@ case $CMD in
 	shift
 	download $@
 	;;
-    inv|inve|inven|invent|invento|inventor|inventory)
+    "in"|inv|inve|inven|invent|invento|inventor|inventory)
 	if [ $INVENTORY_OP == "request" ]; then
 	    requestInventory
 	elif [ -n "$CHECKONLY" ]; then
@@ -862,6 +917,10 @@ case $CMD in
 	;;
     j|jo|job|jobs)
 	listJobs
+	;;
+    pu|pur|purg|purge)
+	shift
+	purge $@
 	;;
     *)
 	showUsage
