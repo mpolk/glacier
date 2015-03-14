@@ -100,7 +100,7 @@ upload() {
 
 makeFileFilter()
 {
-    FILTER=""
+    local FILTER=""
     if [ $# -gt 0 ]; then
 	while [ -n "$1" ]; do
 	    FILENAME=$(basename $1 | sed 's/\*/%/g; s/\?/_/g')
@@ -111,21 +111,45 @@ makeFileFilter()
 	    FILTER="$FILTER)"
 	    shift
 	done
-	FILTER="AND ($FILTER)"
+	FILTER="($FILTER)"
     fi
 
     echo -n $FILTER
 } #makeFileFilter
 
 
+makeFileFilterWithAnd()
+{
+    local FILTER=$(makeFileFilter $@)
+    [ -n "$FILTER" ] && FILTER="AND $FILTER"
+    echo -n $FILTER
+} #makeFileFilterWithAnd
+
+
 list() {
     trace "ARGS=\"$*\""
-    FILTER=$(makeFileFilter $@)
+    FILTER1=
+    [ -z "$SHOWALL" ] && FILTER1='NOT is_deleted'
+    trace "filter1=\"$FILTER1\""
+    FILTER2=$(makeFileFilter $@)
+    trace "filter2=\"$FILTER2\""
+    FILTER=
+    if [ -n "$FILTER1" -o -n "$FILTER2" ]; then
+	FILTER="WHERE $FILTER1"
+	[ -n "$FILTER1" -a -n "$FILTER2" ] && FILTER="$FILTER AND"
+	FILTER="$FILTER $FILTER2"
+    fi
     trace "filter=\"$FILTER\""
+
+    case "$LSMODE" in
+	LONG | VERY_LONG)
+	    echo
+	    ;;
+    esac
 
     ROWS=$(\
 	sql "SELECT filename, dir, ctime, mtime, fsize, id, checksum FROM archives \
-		 WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER ORDER BY dir, filename" \
+		 $FILTER ORDER BY dir, filename" \
     )
     N=0
     TOTAL=0
@@ -148,7 +172,12 @@ list() {
 	((N++))
 	((TOTAL+=$FSIZE))
     done <<< "$ROWS"
-    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $(($TOTAL/1024/1024))
+
+    case "$LSMODE" in
+	LONG | VERY_LONG)
+	    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $(($TOTAL/1024/1024))
+	    ;;
+    esac
 } #list
 
 
@@ -528,7 +557,7 @@ synchronize() {
 requestDownload() {
     assertRWAccess || return $E_FAIL
     trace "ARGS=\"$*\""
-    FILTER=$(makeFileFilter $@)
+    FILTER=$(makeFileFilterWithAnd $@)
     trace "filter=\"$FILTER\""
 
     ROWS=$(sql "SELECT id, filename, dir FROM archives WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER")
@@ -588,7 +617,7 @@ download() {
                JOIN archives ON archives.id = jobs.archive_id
                WHERE jobs.vault_id = $VAULT_ID AND status = $JST_INPROGRESS"
     if [ -n "$1" ]; then
-        FILTER=$(makeFileFilter $@)
+        FILTER=$(makeFileFilterWithAnd $@)
         trace "filter=\"$FILTER\""
 	QUERY="$QUERY $FILTER"
     fi
@@ -693,8 +722,9 @@ showUsage() {
     echo
     echo "  Варианты использования скрипта:"
     echo "    glacier upload <FILE>,..          -- загрузить файл(-ы) в хранилище"
-    echo "    glacier ls [-lL] [<FILE>,..]      -- показать листинг каталога (что у нас уже загружено)"
-    echo "    glacier dir [-lL] [<FILE>,..]     -- то же самое, что и \"ls\""
+    echo "    glacier ls [-lLa] [<FILE>,..]     -- показать листинг каталога (что у нас уже загружено)"
+    echo "      -a                              -- показывать все файлы (в том числе и удаленные)"
+    echo "    glacier dir [-lLa] [<FILE>,..]    -- то же самое, что и \"ls\""
     echo "    glacier rm <FILE>,..              -- удалить архив(-ы) из хранилища"
     echo "    glacier del <FILE>,..             -- то же самое, что и \"rm\""
     echo "    glacier request <FILE>,..         -- запросить выгрузку файла(-ов) из хранилища"
