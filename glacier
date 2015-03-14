@@ -314,8 +314,9 @@ requestInventory() {
     
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ $COUNT != 0 -a -z "$FORCE" ]; then
-	_ "Запрос на инвентаризацию уже отправлен в AWS. Отправка еще одного запроса вряд ли целесообразна."
-	_ "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f"
+	_ "Запрос на инвентаризацию уже отправлен в AWS."
+	_ "Отправка еще одного запроса вряд ли целесообразна."
+	_ "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f."
 	return $E_ALREADYEXISTS
     fi
 
@@ -408,9 +409,9 @@ checkInventoryInternal()
     INVENTORY_TIME=$(sql "SELECT inventory_time FROM vaults WHERE id = $VAULT_ID")
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ -z "$INVENTORY_TIME" -a $COUNT == 0 ]; then
-	echo На данный момент не было выполнено ни одной инвентаризации.
-	echo Сейчас инвентаризация хранилища будет запрошена, а результаты вы сможете
-	echo увидеть позже, ориентировочно через два часа.
+	_ "На данный момент не было выполнено ни одной инвентаризации."
+	_ "Сейчас инвентаризация хранилища будет запрошена."
+	_ "Ее результаты вы сможете увидеть позже, в течение нескольких часов."
 	requestInventory
 	return $E_NOTREADYYET
     fi
@@ -420,9 +421,9 @@ checkInventoryInternal()
     fi
 
     if [ -z "$INVENTORY_TIME" ]; then
-	echo На данный момент не было выполнено ни одной инвентаризации.
-	echo Инвентаризация хранилища была запрошена ранее, но результаты ее загрузить не удалось.
-	echo Попробуйте запросить инвентаризацию еще раз.
+	_ "На данный момент не было выполнено ни одной инвентаризации."
+	_ "Инвентаризация хранилища была запрошена ранее, но результаты ее загрузить не удалось."
+	_ "Попробуйте запросить инвентаризацию еще раз."
 	return $E_FAIL
     fi
     
@@ -434,18 +435,18 @@ checkInventory()
 {
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ $COUNT == 0 ]; then
-	echo На данный момент нет ни одного невыполненного запроса на инвентаризацию
+	_ "На данный момент нет ни одного невыполненного запроса на инвентаризацию"
 	return $E_FAIL
     fi
 
-    loadInventory && echo Результаты инвентаризации успешно загружены в БД
+    loadInventory && _ "Результаты инвентаризации успешно загружены в БД"
 } #checkInventory
 
 
 showInventory() {
     checkInventoryInternal || return $?
 
-    echo Инвентаризация от $(date --date=@$INVENTORY_TIME +"%Y-%m-%d %H:%M")
+    printf "$(_ "Инвентаризация от %s\n")" "$(date --date=@$INVENTORY_TIME +"%Y-%m-%d %H:%M")"
     echo
     N=0
     TOTAL=0
@@ -468,7 +469,7 @@ showInventory() {
 	((N++))
 	((TOTAL+=$SIZE))
     done <<<"$ROWS"
-    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $(($TOTAL/1024/1024))
+    printf "$(_ "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n")" $N $(($TOTAL/1024/1024))
 } #showInventory
 
 
@@ -488,8 +489,8 @@ synchronize() {
 	[ "$DIR" == '.' ] && DIR=
 	
 	if [ -z "$CAT_ROW" ]; then
-	    echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$DESCRIPTION\" имеется в хранилище, но отсутствует в каталоге
-	    askYesNo "Занести его в каталог?" || continue
+	    printf "$(_ "Архив \"%s\" имеется в хранилище, но отсутствует в каталоге\n")" $DESCRIPTION
+	    askYesNo "$(_ "Занести его в каталог?")" || continue
 	    if [ -z "$DIR" ]; then
 		DIR=NULL
 	    else
@@ -507,39 +508,39 @@ synchronize() {
 	trace "FSIZE0=$FSIZE0"
 	trace "IS_DELETED=$IS_DELETED"
 	if [ "$IS_DELETED" != 0 ]; then
-	    echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$DESCRIPTION\" имеется в хранилище, но удален из каталога
-	    askYesNo "Восстановить его?" && sql "UPDATE archives SET is_deleted = 0 WHERE id = '$ARCHIVE_ID'"
+	    printf "$(_ "Архив \"%s\" имеется в хранилище, но удален из каталога\n")" $DESCRIPTION
+	    askYesNo "$(_ "Восстановить его?")" && sql "UPDATE archives SET is_deleted = 0 WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ "$NAME0" != "$NAME" ]; then
-	    echo [ПРЕДУПРЕЖДЕНИЕ] Имя файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
-	    echo "  В хранилище: $NAME"
-	    echo "  В каталоге:  $NAME0"
-	    askYesNo "Исправить данные в каталоге?" && \
+	    printf "$(_ "Имя файла архива \"%s\" не совпадает с таковым в каталоге:\n")" $DESCRIPTION
+	    printf "$(_ "  В хранилище: %s\n")" "$NAME"
+	    printf "$(_ "  В каталоге:  %s\n")" "$NAME0"
+	    askYesNo "$(_ "Исправить данные в каталоге?")" && \
 		sql "UPDATE archives SET filename = '$NAME' WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ -n "$DIR" -a "$DIR0" != "$DIR" ]; then
-	    echo [ПРЕДУПРЕЖДЕНИЕ] Маршрут файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
-	    echo "  В хранилище: $DIR"
-	    echo "  В каталоге:  $DIR0"
-	    askYesNo "Исправить данные в каталоге?" && \
+	    printf "$(_ "Маршрут файла архива \"%s\" не совпадает с таковым в каталоге:\n")" $DESCRIPTION
+	    printf "$(_ "  В хранилище: %s\n")" "$DIR"
+	    printf "$(_ "  В каталоге:  %s\n")" "$DIR0"
+	    askYesNo "$(_ "Исправить данные в каталоге?")" && \
 		sql "UPDATE archives SET dir = '$DIR' WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ "$FSIZE0" != "$SIZE" ]; then
-	    echo [ПРЕДУПРЕЖДЕНИЕ] Размер файла архива \"$DESCRIPTION\" не совпадает с таковым в каталоге:
-	    echo "  В хранилище: $SIZE"
-	    echo "  В каталоге:  $FSIZE0"
-	    askYesNo "Исправить данные в каталоге?" && \
+	    printf "$(_ "Размер файла архива \"%s\" не совпадает с таковым в каталоге:\n")" $DESCRIPTION
+	    printf "$(_ "  В хранилище: %s\n")" "$FSIZE"
+	    printf "$(_ "  В каталоге:  %s\n")" "$FSIZE0"
+	    askYesNo "$(_ "Исправить данные в каталоге?")" && \
 		sql "UPDATE archives SET fsize = $SIZE WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ "$CHECKSUM0" != "$CHECKSUM" ]; then
-	    echo [ПРЕДУПРЕЖДЕНИЕ] Контрольная сумма файла архива \"$DESCRIPTION\" не совпадает с таковой в каталоге:
-	    echo "  В хранилище: $CHECKSUM"
-	    echo "  В каталоге:  $CHECKSUM0"
-	    askYesNo "Исправить данные в каталоге?" && \
+	    printf "$(_ "Контрольная сумма файла архива \"%s\" не совпадает с таковой в каталоге:\n")" $DESCRIPTION
+	    printf "$(_ "  В хранилище: %s\n")" "$CHECKSUM"
+	    printf "$(_ "  В каталоге:  %s\n")" "$CHECKSUM0"
+	    askYesNo "$(_ "Исправить данные в каталоге?")" && \
 		sql "UPDATE archives SET checksum = '$CHECKSUM' WHERE id = '$ARCHIVE_ID'"
 	fi
     done 3<<<"$ROWS"
@@ -556,8 +557,8 @@ synchronize() {
 	trace "NAME=$NAME"
 	trace "DIR=$DIR"
 	[ -n "$DIR" ] && NAME="$DIR/$NAME"
-	echo [ПРЕДУПРЕЖДЕНИЕ] Архив \"$NAME\" числится в каталоге, но отсутствует в хранилище
-	askYesNo "Удалить его из каталога?" && sql "DELETE FROM archives WHERE id = '$ARCHIVE_ID'"
+	printf "$(_ "Архив \"%s\" числится в каталоге, но отсутствует в хранилище\n")" $NAME
+	askYesNo "$(_ "Удалить его из каталога?")" && sql "DELETE FROM archives WHERE id = '$ARCHIVE_ID'"
     done 3<<<"$ROWS"
 } #synchronize
 
@@ -570,7 +571,7 @@ requestDownload() {
 
     ROWS=$(sql "SELECT id, filename, dir FROM archives WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER")
     if [ -z "$ROWS" ]; then
-	echo "Указанный файл(-ы) в каталоге отсутствует!"
+	_ "Указанный(-е) файл(-ы) в каталоге отсутствует(-ют)!"
 	return $E_FAIL
     fi
 
@@ -578,8 +579,9 @@ requestDownload() {
 	[ -n "$DIR" ] && DIR="$DIR/"
 	COUNT=$(sql "SELECT count(1) FROM jobs WHERE archive_id = '$ARCHIVE_ID' AND status = $JST_INPROGRESS") #"
 	if [ $COUNT != 0 -a -z "$FORCE" ]; then
-	    echo "Запрос на выгрузку файла $DIR$NAME уже отправлен в AWS. Отправка еще одного запроса вряд ли целесообразна."
-	    echo "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f"
+	    printf "$(_ "Запрос на выгрузку файла %s%s уже отправлен в AWS.\n")" "$DIR" "$NAME"
+	    _ "Отправка еще одного запроса вряд ли целесообразна."
+	    _ "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f."
 	    continue
 	fi
 
@@ -589,7 +591,7 @@ requestDownload() {
 	    --job-id="$JOB_ID" \
     )
     if [ $? != 0 ]; then
-	echo Неудача при попытке получить состояние задания!
+	_ "Неудача при попытке получить состояние задания!"
 	sql "UPDATE jobs SET status = $JST_FAILED WHERE id = '$JOB_ID'"
 	return $E_FAIL
     fi
@@ -597,7 +599,7 @@ requestDownload() {
     parseJson COMPLETED:Completed <<< "$REPLY"
     trace "COMPLETED=$COMPLETED"
     if [ "$COMPLETED" != "true" ]; then
-	echo Запрос на инветаризацию еще не выполнен, данные не обновлены
+	_ "Запрос на инветаризацию еще не выполнен, данные не обновлены"
 	return $E_NOTREADYYET
     fi
 
@@ -608,11 +610,11 @@ requestDownload() {
 	    --job-id="$JOB_ID" $TMPFILE \
     )
     if [ $? != 0 ]; then
-	echo Неудача при попытке загрузить результаты инвентаризации!
+	_ "Неудача при попытке загрузить результаты инвентаризации!"
 	return $E_FAIL
     fi
 
-	echo "Запрос на выгрузку файла \"$DIR$NAME\"направлен в хранилище"
+    printf "$(_ "Запрос на выгрузку файла \"%s\"направлен в хранилище\n")" $DIR$NAME
     done <<< "$ROWS";
 } #requestDownload
 
@@ -633,10 +635,10 @@ download() {
     ROWS=$(sql "$QUERY")
     if [ -z "$ROWS" ]; then
     	if [ -z "$1" ]; then
-	    echo "Какие-либо невыполненные задания на выгрузку в каталоге отсутствует!"
+	    _ "Какие-либо невыполненные задания на выгрузку файлов в каталоге отсутствует!"
 	else
-	    echo "Запрос(-ы) на выгрузку для указанного файла(-ов) в каталоге отсутствуют!"
-	    echo "Следует сначала запросить выгрузку файла(-ов) с помощью команды \"request\""
+	    _ "Запрос(-ы) на выгрузку для указанного файла(-ов) в каталоге отсутствуют!"
+	    _ "Следует сначала запросить выгрузку файла(-ов) с помощью команды \"request\""
 	fi
 	return $E_FAIL
     fi
@@ -649,7 +651,7 @@ download() {
 		--job-id="$JOB_ID" \
 	)
 	if [ $? != 0 ]; then
-	    echo Неудача при попытке получить состояние задания!
+	    _ "Неудача при попытке получить состояние задания!"
 	    #sql "UPDATE jobs SET status = $JST_FAILED WHERE id = '$JOB_ID'"
 	    return $E_FAIL
 	fi
@@ -657,7 +659,7 @@ download() {
 	parseJson COMPLETED:Completed <<< "$REPLY"
 	trace "COMPLETED=$COMPLETED"
 	if [ "$COMPLETED" != "true" ]; then
-	    echo Запрос на выгрузку файла $DIR$NAME еще не выполнен, файл пропущен
+	    printf "$(_ "Запрос на выгрузку файла %s%s еще не выполнен, файл пропущен\n")" "$DIR" "$NAME"
 	    continue
 	fi
 
@@ -681,7 +683,7 @@ download() {
 	)
 	if [ $? != 0 ]; then
 	    echo
-	    echo Неудача при попытке выгрузить файл $DIR$NAME!
+	    printf "$(_ "Неудача при попытке выгрузить файл %s%s!\n")" "$DIR" "$NAME"
 	    continue
 	fi
 
@@ -696,14 +698,14 @@ download() {
 purgeFiles() {
     COUNT=$(sql "SELECT count(1) FROM archives WHERE is_deleted")
     if [ $COUNT == 0 ]; then
-	echo Удаленных файлов в каталоге не найдено
+	_ "Удаленных файлов в каталоге не найдено"
 	return $E_NOSUCHOBJECT
     fi
 
-    askYesNo "Действительно вычистить все удаленные файлы ($COUNT)? Вы уверены?" || return $E_CANCELLED
+    askYesNo "$(_ "Действительно вычистить все удаленные файлы? Вы уверены?")" || return $E_CANCELLED
 
     sql "DELETE FROM archives WHERE is_deleted"
-    echo "Вычищено $COUNT удаленных файлов"
+    printf "$(_ "Вычищено %d удаленных файлов\n")" $COUNT
 } #purgeFiles
 
 
@@ -711,14 +713,14 @@ purgeFiles() {
 purgeJobs() {
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE status <> 0")
     if [ $COUNT == 0 ]; then
-	echo Выполненных заданий в каталоге не найдено
+	_ "Выполненных заданий в каталоге не найдено"
 	return $E_NOSUCHOBJECT
     fi
 
-    askYesNo "Действительно вычистить все выполненные задания ($COUNT)? Вы уверены?" || return $E_CANCELLED
+    askYesNo "$(_ "Действительно вычистить все выполненные задания ? Вы уверены?")" || return $E_CANCELLED
 
     sql "DELETE FROM jobs WHERE status <> 0"
-    echo "Вычищено $COUNT выполненных заданий"
+    printf "$(_ "Вычищено %s выполненных заданий\n")" $COUNT
 } #purgeJobs
 
 
@@ -737,7 +739,7 @@ purge() {
 	    PURGE_JOBS=1
 	    ;;
 	*)
-	    echo "Необходимо указать, что вы хотите вычистить: files|jobs|all"
+	    _ "Необходимо указать, что вы хотите вычистить: files|jobs|all"
 	    return $E_FAIL
 	    ;;
     esac
@@ -748,7 +750,7 @@ purge() {
 
 
 initDB() {
-    echo -n Инициализируем БД...
+    echo -n $(_ "Инициализируем БД...")
     if sql "\
 	PRAGMA foreign_keys=ON;
 	CREATE TABLE vaults(id integer primary key, name text, arn text, inventory_time integer); \
@@ -772,7 +774,7 @@ initDB() {
 	echo
     else
 	echo
-	echo Не могу проинициализировать базу даных!
+	_ "Не могу проинициализировать базу даных!"
 	exit $E_FAIL
     fi
 } #initBD
