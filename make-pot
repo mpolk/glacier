@@ -1,0 +1,12 @@
+#!/bin/bash
+
+OUTFILE=mpolk-glacier.pot
+if [ -f $OUTFILE ]; then
+    BACKUP=$OUTFILE
+    I=1
+    while [ -f $BACKUP ]; do
+	BACKUP=${OUTFILE}.bak$((I++))
+    done
+    mv $OUTFILE $BACKUP
+fi
+xgettext glacier -LShell -k -k_ --from-code=UTF-8 -d mpolk-glacier --no-wrap -o $OUTFILE

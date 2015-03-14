@@ -1,0 +1,106 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2015-03-14 17:43+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: glacier:32
+msgid "Отсутствует доступ на запись в БД! Операция запрещена."
+msgstr ""
+
+#: glacier:92
+msgid "Неудачная загрузка архива!"
+msgstr ""
+
+#: glacier:206
+msgid "\\n    Всего %d архив(а,-ов) общим объемом %d МиБ\\n\\n"
+msgstr ""
+
+#: glacier:221
+msgid "<ИНВЕНТАРИЗАЦИЯ>"
+msgstr ""
+
+#: glacier:225
+msgid "in-progress"
+msgstr ""
+
+#: glacier:226
+msgid "completed"
+msgstr ""
+
+#: glacier:227
+msgid "failed"
+msgstr ""
+
+#: glacier:228
+msgid "cancelled"
+msgstr ""
+
+#: glacier:260
+msgid "Нет такого архива: %s!"
+msgstr ""
+
+#: glacier:264
+msgid "Действительно удалить архив %s? Вы уверены? (yes/no) "
+msgstr ""
+
+#: glacier:275
+msgid "Найдено %d архив(-а,-ов) с именем %s? Вы действительно хотите удалить их всех? (yes/no) "
+msgstr ""
+
+#: glacier:284
+msgid "Вы действительно хотите удалить все %d архив(-а,-ов)?? (yes/no) "
+msgstr ""
+
+#: glacier:302
+msgid "Удаляем архив \"%s\""
+msgstr ""
+
+#: glacier:317
+msgid "Запрос на инвентаризацию уже отправлен в AWS. Отправка еще одного запроса вряд ли целесообразна."
+msgstr ""
+
+#: glacier:318
+msgid "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f"
+msgstr ""
+
+#: glacier:328
+msgid "Неудача при инициализации задания!"
+msgstr ""
+
+#: glacier:338
+msgid "Запрос на инвентаризацию направлен в хранилище"
+msgstr ""
+
+#: glacier:343
+msgid "Обновляем результаты инвентаризации хранилища..."
+msgstr ""
+
+#: glacier:358
+msgid "Неудача при попытке получить состояние задания!"
+msgstr ""
+
+#: glacier:366
+msgid "Запрос на инветаризацию еще не выполнен, данные не обновлены"
+msgstr ""
+
+#: glacier:377
+msgid "Неудача при попытке загрузить результаты инвентаризации!"
+msgstr ""
+
+#: glacier:900
+msgid "Команда request требует обязательного параметра (шаблон имени файла или \"-\")"
+msgstr ""

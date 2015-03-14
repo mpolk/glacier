@@ -21,9 +21,15 @@ readonly JST_FAILED=2
 readonly JST_CANCELLED=3
 
 
+_() {
+    export local TEXTDOMAIN=mpolk-glacier
+    gettext -s $*
+} #_
+
+
 assertRWAccess() {
     if [ -n "$READONLY" ]; then
-	echo Отсутствует доступ на запись в БД! Операция запрещена.
+	_ "Отсутствует доступ на запись в БД! Операция запрещена."
 	return $E_FAIL
     fi
 
@@ -83,7 +89,7 @@ upload() {
     )
     if [ $? != 0 ]; then
 	echo
-	echo Неудачная загрузка архива!
+	_ "Неудачная загрузка архива!"
 	return $E_FAIL
     fi
     echo OK
@@ -197,7 +203,7 @@ list() {
 
     case "$LSMODE" in
 	LONG | VERY_LONG)
-	    printf "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n" $N $(($TOTAL/1024/1024))
+	    printf "$(_ "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n")" $N $(($TOTAL/1024/1024))
 	    ;;
     esac
 } #list
@@ -212,14 +218,14 @@ listJobs() {
 	    LEFT JOIN archives ON archives.id = jobs.archive_id
             WHERE jobs.vault_id = $VAULT_ID $FILTER ORDER BY submission_time" | \
     while IFS="|" read ID TIME NAME DIR STATUS; do
-	[ -z "$NAME" ] && NAME="<ИНВЕНТАРИЗАЦИЯ>"
+	[ -z "$NAME" ] && NAME=$(_ "<ИНВЕНТАРИЗАЦИЯ>")
 	TIME=$(date --date=@$TIME +"%Y-%m-%d %H:%M:%S")
 	[ -n "$DIR" ] && DIR="$DIR/"
 	case "$STATUS" in
-	    $JST_INPROGRESS) STATUS="in-progress";;
-	    $JST_COMPLETED)  STATUS="completed";;
-	    $JST_FAILED)     STATUS="failed";;
-	    $JST_CANCELLED)  STATUS="cancelled";;
+	    $JST_INPROGRESS) STATUS=$(_ "in-progress");;
+	    $JST_COMPLETED)  STATUS=$(_ "completed");;
+	    $JST_FAILED)     STATUS=$(_ "failed");;
+	    $JST_CANCELLED)  STATUS=$(_ "cancelled");;
 	esac
 	if [ -z "$SHOWALL" ]; then
 	    printf "%s  %s%s\n" "$TIME" "$DIR" "$NAME"
@@ -251,11 +257,11 @@ remove() {
 
     case $COUNT in
 	0)
-	    echo Нет такого архива: $1!
+	    printf "$(_ "Нет такого архива: %s!")\n" $1
 	    return $E_NOSUCHOBJECT
 	    ;;
 	1)
-	    echo -n "Действительно удалить архив $1? Вы уверены? (yes/no) "
+	    printf "$(_ "Действительно удалить архив %s? Вы уверены? (yes/no) ")" $1
 	    while true; do
 		read
 		case "$REPLY" in
@@ -266,7 +272,7 @@ remove() {
 	    done
 	    ;;
 	*)
-	    echo -n "Найдено $COUNT архив(-а,-ов) с именем $1? Вы действительно хотите удалить их всех? (yes/no) "
+	    printf "$(_ "Найдено %d архив(-а,-ов) с именем %s? Вы действительно хотите удалить их всех? (yes/no) ")" $COUNT $1
 	    while true; do
 		read
 		case "$REPLY" in
@@ -275,7 +281,7 @@ remove() {
 		    *) echo -n "  yes or no? ";;
 		esac
 	    done
-	    echo -n "Вы действительно хотите удалить все $COUNT архив(-а,-ов)?? (yes/no) "
+	    printf "$(_ "Вы действительно хотите удалить все %d архив(-а,-ов)?? (yes/no) ")" $COUNT
 	    while true; do
 		read
 		case "$REPLY" in
@@ -293,7 +299,7 @@ remove() {
     IDS=$(sql "$QUERY")
 
     while read ARCHIVE_ID; do
-	echo Удаляем архив \"$ARCHIVE_ID\"
+	printf "$(_ "Удаляем архив \"%s\"")" $ARCHIVE_ID
 	if aws glacier delete-archive --account-id=- --archive-id="$ARCHIVE_ID" $DEBUG \
 	     --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION"
 	then
@@ -308,8 +314,8 @@ requestInventory() {
     
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ $COUNT != 0 -a -z "$FORCE" ]; then
-	echo "Запрос на инвентаризацию уже отправлен в AWS. Отправка еще одного запроса вряд ли целесообразна."
-	echo "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f"
+	_ "Запрос на инвентаризацию уже отправлен в AWS. Отправка еще одного запроса вряд ли целесообразна."
+	_ "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f"
 	return $E_ALREADYEXISTS
     fi
 
@@ -319,7 +325,7 @@ requestInventory() {
 	    --job-parameters="{\"Type\": \"inventory-retrieval\", \"Format\": \"CSV\"}" \
     )
     if [ $? != 0 ]; then
-	echo Неудача при инициализации задания!
+	_ "Неудача при инициализации задания!"
 	return $E_FAIL
     fi
 
@@ -329,12 +335,12 @@ requestInventory() {
                                 WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS"
     sql "INSERT INTO jobs(id, vault_id, submission_time, location) \
 	    VALUES ('$JOB_ID', $VAULT_ID, $(date +%s), '$LOCATION')"
-    echo Запрос на инвентаризацию направлен в хранилище
+    _ "Запрос на инвентаризацию направлен в хранилище"
 } #requestInventory
 
 
 loadInventory() {
-    echo Обновляем результаты инвентаризации хранилища...
+    _ "Обновляем результаты инвентаризации хранилища..."
     assertRWAccess || return $E_FAIL
 
     JOB_ID=$(sql "SELECT id FROM jobs \
@@ -349,7 +355,7 @@ loadInventory() {
 	    --job-id="$JOB_ID" \
     )
     if [ $? != 0 ]; then
-	echo Неудача при попытке получить состояние задания!
+	_ "Неудача при попытке получить состояние задания!"
 	sql "UPDATE jobs SET status = $JST_FAILED WHERE id = '$JOB_ID'"
 	return $E_FAIL
     fi
@@ -357,7 +363,7 @@ loadInventory() {
     parseJson COMPLETED:Completed <<< "$REPLY"
     trace "COMPLETED=$COMPLETED"
     if [ "$COMPLETED" != "true" ]; then
-	echo Запрос на инветаризацию еще не выполнен, данные не обновлены
+	_ "Запрос на инветаризацию еще не выполнен, данные не обновлены"
 	return $E_NOTREADYYET
     fi
 
@@ -368,7 +374,7 @@ loadInventory() {
 	    --job-id="$JOB_ID" $TMPFILE \
     )
     if [ $? != 0 ]; then
-	echo Неудача при попытке загрузить результаты инвентаризации!
+	_ "Неудача при попытке загрузить результаты инвентаризации!"
 	return $E_FAIL
     fi
 
@@ -891,7 +897,7 @@ case $CMD in
     re|req|requ|reque|reques|request)
 	shift
 	if [ -z "$1" ]; then
-	    echo 'Команда request требует обязательного параметра (шаблон имени файла или "-")'
+	    _ 'Команда request требует обязательного параметра (шаблон имени файла или "-")'
 	    exit $E_FAIL
 	elif [ "$1" == '-' ]; then
 	    requestInventory
