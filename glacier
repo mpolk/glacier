@@ -157,7 +157,7 @@ list() {
 	CTIME=$(date --date=@$CTIME +"%Y-%m-%d %H:%M:%S")
 	MTIME=$(date --date=@$MTIME +"%Y-%m-%d %H:%M:%S")
 	MARK=
-	[ "$IS_DELETED" -ne 0 ] && MARK=(-)
+	[ "$IS_DELETED" -ne 0 ] && MARK="(-)"
 	[ -n "$DIR" ] && DIR="$DIR/"
 	case "$LSMODE" in
 	    LONG)
