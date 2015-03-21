@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-03-14 21:25+0200\n"
+"POT-Creation-Date: 2015-03-21 13:38+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,8 +25,8 @@ msgstr ""
 msgid "Неудачная загрузка архива!"
 msgstr ""
 
-#: glacier:206 glacier:471
-msgid "\\n    Всего %d архив(а,-ов) общим объемом %d МиБ\\n\\n"
+#: glacier:206 glacier:472
+msgid "\\n    Всего %d МиБ в %d архивах\\n\\n"
 msgstr ""
 
 #: glacier:221
@@ -70,85 +70,193 @@ msgid "Удаляем архив \"%s\""
 msgstr ""
 
 #: glacier:317
-msgid "Запрос на инвентаризацию уже отправлен в AWS. Отправка еще одного запроса вряд ли целесообразна."
+msgid "Запрос на инвентаризацию уже отправлен в AWS."
 msgstr ""
 
-#: glacier:318
-msgid "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f"
+#: glacier:318 glacier:583
+msgid "Отправка еще одного запроса вряд ли целесообразна."
 msgstr ""
 
-#: glacier:328
+#: glacier:319 glacier:584
+msgid "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f."
+msgstr ""
+
+#: glacier:329
 msgid "Неудача при инициализации задания!"
 msgstr ""
 
-#: glacier:338
+#: glacier:339
 msgid "Запрос на инвентаризацию направлен в хранилище"
 msgstr ""
 
-#: glacier:343
+#: glacier:344
 msgid "Обновляем результаты инвентаризации хранилища..."
 msgstr ""
 
-#: glacier:358
+#: glacier:359 glacier:594 glacier:654
 msgid "Неудача при попытке получить состояние задания!"
 msgstr ""
 
-#: glacier:366
+#: glacier:367 glacier:602
 msgid "Запрос на инветаризацию еще не выполнен, данные не обновлены"
 msgstr ""
 
-#: glacier:377
+#: glacier:378 glacier:613
 msgid "Неудача при попытке загрузить результаты инвентаризации!"
 msgstr ""
 
-#: glacier:411 glacier:423
+#: glacier:412 glacier:424
 msgid "На данный момент не было выполнено ни одной инвентаризации."
 msgstr ""
 
-#: glacier:412
+#: glacier:413
 msgid "Сейчас инвентаризация хранилища будет запрошена."
 msgstr ""
 
-#: glacier:413
+#: glacier:414
 msgid "Ее результаты вы сможете увидеть позже, в течение нескольких часов."
 msgstr ""
 
-#: glacier:424
+#: glacier:425
 msgid "Инвентаризация хранилища была запрошена ранее, но результаты ее загрузить не удалось."
 msgstr ""
 
-#: glacier:425
+#: glacier:426
 msgid "Попробуйте запросить инвентаризацию еще раз."
 msgstr ""
 
-#: glacier:437
+#: glacier:438
 msgid "На данный момент нет ни одного невыполненного запроса на инвентаризацию"
 msgstr ""
 
-#: glacier:441
+#: glacier:442
 msgid "Результаты инвентаризации успешно загружены в БД"
 msgstr ""
 
-#: glacier:448
+#: glacier:449
 msgid "Инвентаризация от %s\\n"
 msgstr ""
 
-#: glacier:491
+#: glacier:492
 msgid "Архив \"%s\" имеется в хранилище, но отсутствует в каталоге\\n"
 msgstr ""
 
-#: glacier:492
+#: glacier:493
 msgid "Занести его в каталог?"
 msgstr ""
 
-#: glacier:510
+#: glacier:511
 msgid "Архив \"%s\" имеется в хранилище, но удален из каталога\\n"
 msgstr ""
 
-#: glacier:511
+#: glacier:512
 msgid "Восстановить его?"
 msgstr ""
 
-#: glacier:900
+#: glacier:516
+msgid "Имя файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
+msgstr ""
+
+#: glacier:517 glacier:525 glacier:533 glacier:541
+msgid "  В хранилище: %s\\n"
+msgstr ""
+
+#: glacier:518 glacier:526 glacier:534 glacier:542
+msgid "  В каталоге:  %s\\n"
+msgstr ""
+
+#: glacier:519 glacier:527 glacier:535 glacier:543
+msgid "Исправить данные в каталоге?"
+msgstr ""
+
+#: glacier:524
+msgid "Маршрут файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
+msgstr ""
+
+#: glacier:532
+msgid "Размер файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
+msgstr ""
+
+#: glacier:540
+msgid "Контрольная сумма файла архива \"%s\" не совпадает с таковой в каталоге:\\n"
+msgstr ""
+
+#: glacier:560
+msgid "Архив \"%s\" числится в каталоге, но отсутствует в хранилище\\n"
+msgstr ""
+
+#: glacier:561
+msgid "Удалить его из каталога?"
+msgstr ""
+
+#: glacier:574
+msgid "Указанный(-е) файл(-ы) в каталоге отсутствует(-ют)!"
+msgstr ""
+
+#: glacier:582
+msgid "Запрос на выгрузку файла %s%s уже отправлен в AWS.\\n"
+msgstr ""
+
+#: glacier:617
+msgid "Запрос на выгрузку файла \"%s\"направлен в хранилище\\n"
+msgstr ""
+
+#: glacier:638
+msgid "Какие-либо невыполненные задания на выгрузку файлов в каталоге отсутствует!"
+msgstr ""
+
+#: glacier:640
+msgid "Запрос(-ы) на выгрузку для указанного файла(-ов) в каталоге отсутствуют!"
+msgstr ""
+
+#: glacier:641
+msgid "Следует сначала запросить выгрузку файла(-ов) с помощью команды \"request\""
+msgstr ""
+
+#: glacier:662
+msgid "Запрос на выгрузку файла %s%s еще не выполнен, файл пропущен\\n"
+msgstr ""
+
+#: glacier:686
+msgid "Неудача при попытке выгрузить файл %s%s!\\n"
+msgstr ""
+
+#: glacier:701
+msgid "Удаленных файлов в каталоге не найдено"
+msgstr ""
+
+#: glacier:705
+msgid "Действительно вычистить все удаленные файлы? Вы уверены?"
+msgstr ""
+
+#: glacier:708
+msgid "Вычищено %d удаленных файлов\\n"
+msgstr ""
+
+#: glacier:716
+msgid "Выполненных заданий в каталоге не найдено"
+msgstr ""
+
+#: glacier:720
+msgid "Действительно вычистить все выполненные задания ? Вы уверены?"
+msgstr ""
+
+#: glacier:723
+msgid "Вычищено %s выполненных заданий\\n"
+msgstr ""
+
+#: glacier:742
+msgid "Необходимо указать, что вы хотите вычистить: files|jobs|all"
+msgstr ""
+
+#: glacier:753
+msgid "Инициализируем БД..."
+msgstr ""
+
+#: glacier:777
+msgid "Не могу проинициализировать базу даных!"
+msgstr ""
+
+#: glacier:902
 msgid "Команда request требует обязательного параметра (шаблон имени файла или \"-\")"
 msgstr ""

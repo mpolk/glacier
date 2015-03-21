@@ -203,7 +203,7 @@ list() {
 
     case "$LSMODE" in
 	LONG | VERY_LONG)
-	    printf "$(_ "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n")" $N $(($TOTAL/1024/1024))
+	    printf "$(_ "\n    Всего %d МиБ в %d архивах\n\n")" $(($TOTAL/1024/1024)) $N
 	    ;;
     esac
 } #list
@@ -469,7 +469,7 @@ showInventory() {
 	((N++))
 	((TOTAL+=$SIZE))
     done <<<"$ROWS"
-    printf "$(_ "\n    Всего %d архив(а,-ов) общим объемом %d МиБ\n\n")" $N $(($TOTAL/1024/1024))
+    printf "$(_ "\n    Всего %d МиБ в %d архивах\n\n")" $(($TOTAL/1024/1024)) $N
 } #showInventory
 
 
