@@ -344,13 +344,14 @@ loadInventory() {
     _ "Обновляем результаты инвентаризации хранилища..."
     assertRWAccess || return $E_FAIL
 
-    JOB_ID=$(sql "SELECT id FROM jobs \
-                      WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS \
-                      ORDER BY submission_time DESC \
-                      LIMIT 1")
+    local JOB_ID=$(sql \
+	"SELECT id FROM jobs \
+             WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS \
+             ORDER BY submission_time DESC \
+             LIMIT 1")
     trace "JOB_ID=$JOB_ID"
 
-    REPLY=$(\
+    local REPLY=$(\
 	aws glacier describe-job --account-id=- --output=json $DEBUG \
 	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
 	    --job-id="$JOB_ID" \
@@ -368,7 +369,7 @@ loadInventory() {
 	return $E_NOTREADYYET
     fi
 
-    TMPFILE=$(mktemp --tmpdir glacier-inventory-XXXXXXXX.csv)
+    local TMPFILE=$(mktemp --tmpdir glacier-inventory-XXXXXXXX.csv)
     REPLY=$(\
 	aws glacier get-job-output --account-id=- --output=json $DEBUG \
 	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
@@ -379,7 +380,7 @@ loadInventory() {
 	return $E_FAIL
     fi
 
-    sql "DELETE FROM inventory WHERE vault_id = $VAULT_ID"
+    local QUERY="BEGIN;\nDELETE FROM inventory WHERE vault_id = $VAULT_ID;\n"
     I=0
     while read LINE; do
 	((I++ == 0)) && continue
@@ -393,12 +394,15 @@ loadInventory() {
 	trace "CTIME=$CTIME"
 	trace "SIZE=$SIZE"
 	trace "CHECKSUM=$CHECKSUM"
-	sql "INSERT INTO inventory(vault_id, seq_no, archive_id, description, ctime, size, checksum) \
-		VALUES ($VAULT_ID, $I, '$ARCHIVE_ID', '$DESCRIPTION', $CTIME, $SIZE, '$CHECKSUM')"
+	QUERY="$QUERY\
+	    INSERT INTO inventory(vault_id, seq_no, archive_id, description, ctime, size, checksum) \
+		VALUES ($VAULT_ID, $I, '$ARCHIVE_ID', '$DESCRIPTION', $CTIME, $SIZE, '$CHECKSUM');\n"
     done < $TMPFILE
 
-    sql "UPDATE jobs SET status = $JST_COMPLETED WHERE id = '$JOB_ID';\
-         UPDATE vaults SET inventory_time = $(date +%s)"
+    QUERY="$QUERY\
+	UPDATE jobs SET status = $JST_COMPLETED WHERE id = '$JOB_ID';\n\
+        UPDATE vaults SET inventory_time = $(date +%s);\n\
+	COMMIT"
     rm $TMPFILE
     return $S_OK
 } #loadInventory
