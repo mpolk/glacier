@@ -29,7 +29,7 @@ _() {
 
 assertRWAccess() {
     if [ -n "$READONLY" ]; then
-	_ "Отсутствует доступ на запись в БД! Операция запрещена."
+	_ "No write access to DB! Operation aborted."
 	return $E_FAIL
     fi
 
@@ -89,7 +89,7 @@ upload() {
     )
     if [ $? != 0 ]; then
 	echo
-	_ "Неудачная загрузка архива!"
+	_ "Upload failed!"
 	return $E_FAIL
     fi
     echo OK
@@ -203,7 +203,7 @@ list() {
 
     case "$LSMODE" in
 	LONG | VERY_LONG)
-	    printf "$(_ "\n    Всего %d МиБ в %d архивах\n\n")" $(($TOTAL/1024/1024)) $N
+	    printf "$(_ "\n    Total %d MiB in %d archives\n\n")" $(($TOTAL/1024/1024)) $N
 	    ;;
     esac
 } #list
@@ -218,7 +218,7 @@ listJobs() {
 	    LEFT JOIN archives ON archives.id = jobs.archive_id
             WHERE jobs.vault_id = $VAULT_ID $FILTER ORDER BY submission_time" | \
     while IFS="|" read ID TIME NAME DIR STATUS; do
-	[ -z "$NAME" ] && NAME=$(_ "<ИНВЕНТАРИЗАЦИЯ>")
+	[ -z "$NAME" ] && NAME=$(_ "<INVENTORY>")
 	TIME=$(date --date=@$TIME +"%Y-%m-%d %H:%M:%S")
 	[ -n "$DIR" ] && DIR="$DIR/"
 	case "$STATUS" in
@@ -257,11 +257,11 @@ remove() {
 
     case $COUNT in
 	0)
-	    printf "$(_ "Нет такого архива: %s!")\n" $1
+	    printf "$(_ "No such archive: %s!")\n" $1
 	    return $E_NOSUCHOBJECT
 	    ;;
 	1)
-	    printf "$(_ "Действительно удалить архив %s? Вы уверены? (yes/no) ")" $1
+	    printf "$(_ "Really delete archive %s? Are you sure? (yes/no) ")" $1
 	    while true; do
 		read
 		case "$REPLY" in
@@ -272,7 +272,7 @@ remove() {
 	    done
 	    ;;
 	*)
-	    printf "$(_ "Найдено %d архив(-а,-ов) с именем %s? Вы действительно хотите удалить их всех? (yes/no) ")" $COUNT $1
+	    printf "$(_ "Found %d archive(s) with the name %s. Are you sure you want to delete them all (yes/no) ")" $COUNT $1
 	    while true; do
 		read
 		case "$REPLY" in
@@ -281,7 +281,7 @@ remove() {
 		    *) echo -n "  yes or no? ";;
 		esac
 	    done
-	    printf "$(_ "Вы действительно хотите удалить все %d архив(-а,-ов)?? (yes/no) ")" $COUNT
+	    printf "$(_ "Are you sure you want to delete all %d acrhives?? (yes/no) ")" $COUNT
 	    while true; do
 		read
 		case "$REPLY" in
@@ -299,7 +299,7 @@ remove() {
     IDS=$(sql "$QUERY")
 
     while read ARCHIVE_ID; do
-	printf "$(_ "Удаляем архив \"%s\"")" $ARCHIVE_ID
+	printf "$(_ "Deleting archive \"%s\"")" $ARCHIVE_ID
 	if aws glacier delete-archive --account-id=- --archive-id="$ARCHIVE_ID" $DEBUG \
 	     --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION"
 	then
@@ -473,7 +473,7 @@ showInventory() {
 	((N++))
 	((TOTAL+=$SIZE))
     done <<<"$ROWS"
-    printf "$(_ "\n    Всего %d МиБ в %d архивах\n\n")" $(($TOTAL/1024/1024)) $N
+    printf "$(_ "\n    Total %d MiB in %d archives\n\n")" $(($TOTAL/1024/1024)) $N
 } #showInventory
 
 
@@ -787,7 +787,7 @@ initDB() {
 showUsage() {
     local SCRIPT=$(basename $0)
     echo
-    echo $SCRIPT - $(_ "скрипт для выполнения операций с хранилищем AWS Glacier")
+    echo $SCRIPT - $(_ "utility script for manipulation with AWS Glacier storage")
     echo
     _    "  Варианты использования скрипта:"
     echo "    $SCRIPT upload <FILE>,..          -- " $(_ "загрузить файл(-ы) в хранилище")
