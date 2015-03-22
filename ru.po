@@ -73,63 +73,63 @@ msgid "Deleting archive \"%s\""
 msgstr "Удаляем архив \"%s\""
 
 #: glacier:317
-msgid ""
+msgid "Inventory request already sent to AWS."
 msgstr "Запрос на инвентаризацию уже отправлен в AWS."
 
 #: glacier:318 glacier:587
-msgid ""
+msgid "Sending another request usually does not make any sense."
 msgstr "Отправка еще одного запроса вряд ли целесообразна."
 
 #: glacier:319 glacier:588
-msgid ""
+msgid "If you still believe sending one more request is required, add \"-f\" option."
 msgstr ""
 "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -"
 "f."
 
 #: glacier:329
-msgid ""
+msgid "Job initialization failed!"
 msgstr "Неудача при инициализации задания!"
 
 #: glacier:339
-msgid ""
+msgid "Inventory request sent to AWS"
 msgstr "Запрос на инвентаризацию направлен в хранилище"
 
 #: glacier:344
-msgid ""
+msgid "Trying to reload storage inventory results..."
 msgstr "Обновляем результаты инвентаризации хранилища..."
 
 #: glacier:360 glacier:598 glacier:658
-msgid ""
+msgid "Job status request failed!"
 msgstr "Неудача при попытке получить состояние задания!"
 
 #: glacier:368 glacier:606
-msgid ""
+msgid "Inventory request is not fulfilled yet, data is not refreshed"
 msgstr "Запрос на инветаризацию еще не выполнен, данные не обновлены"
 
 #: glacier:379 glacier:617
-msgid ""
+msgid "Inventory results load failed!"
 msgstr "Неудача при попытке загрузить результаты инвентаризации!"
 
 #: glacier:416 glacier:428
-msgid ""
+msgid "No inventory was completed yet."
 msgstr "На данный момент не было выполнено ни одной инвентаризации."
 
 #: glacier:417
-msgid ""
+msgid "Now inventory will be requested."
 msgstr "Сейчас инвентаризация хранилища будет запрошена."
 
 #: glacier:418
-msgid ""
+msgid "Its result will be ready after some hours."
 msgstr "Ее результаты вы сможете увидеть позже, в течение нескольких часов."
 
 #: glacier:429
-msgid ""
+msgid "Storage inventory was requested before, but its results could not be loaded."
 msgstr ""
 "Инвентаризация хранилища была запрошена ранее, но результаты ее загрузить не "
 "удалось."
 
 #: glacier:430
-msgid ""
+msgid "Try to request an inventory once more."
 msgstr "Попробуйте запросить инвентаризацию еще раз."
 
 #: glacier:442

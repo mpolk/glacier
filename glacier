@@ -314,9 +314,9 @@ requestInventory() {
     
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ $COUNT != 0 -a -z "$FORCE" ]; then
-	_ "Запрос на инвентаризацию уже отправлен в AWS."
-	_ "Отправка еще одного запроса вряд ли целесообразна."
-	_ "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f."
+	_ "Inventory request already sent to AWS."
+	_ "Sending another request usually does not make any sense."
+	_ "If you still believe sending one more request is required, add \"-f\" option."
 	return $E_ALREADYEXISTS
     fi
 
@@ -326,7 +326,7 @@ requestInventory() {
 	    --job-parameters="{\"Type\": \"inventory-retrieval\", \"Format\": \"CSV\"}" \
     )
     if [ $? != 0 ]; then
-	_ "Неудача при инициализации задания!"
+	_ "Job initialization failed!"
 	return $E_FAIL
     fi
 
@@ -336,12 +336,12 @@ requestInventory() {
                                 WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS"
     sql "INSERT INTO jobs(id, vault_id, submission_time, location) \
 	    VALUES ('$JOB_ID', $VAULT_ID, $(date +%s), '$LOCATION')"
-    _ "Запрос на инвентаризацию направлен в хранилище"
+    _ "Inventory request sent to AWS"
 } #requestInventory
 
 
 loadInventory() {
-    _ "Обновляем результаты инвентаризации хранилища..."
+    _ "Trying to reload storage inventory results..."
     assertRWAccess || return $E_FAIL
 
     local JOB_ID=$(sql \
@@ -357,7 +357,7 @@ loadInventory() {
 	    --job-id="$JOB_ID" \
     )
     if [ $? != 0 ]; then
-	_ "Неудача при попытке получить состояние задания!"
+	_ "Job status request failed!"
 	sql "UPDATE jobs SET status = $JST_FAILED WHERE id = '$JOB_ID'"
 	return $E_FAIL
     fi
@@ -365,7 +365,7 @@ loadInventory() {
     parseJson COMPLETED:Completed <<< "$REPLY"
     trace "COMPLETED=$COMPLETED"
     if [ "$COMPLETED" != "true" ]; then
-	_ "Запрос на инветаризацию еще не выполнен, данные не обновлены"
+	_ "Inventory request is not fulfilled yet, data is not refreshed"
 	return $E_NOTREADYYET
     fi
 
@@ -376,7 +376,7 @@ loadInventory() {
 	    --job-id="$JOB_ID" $TMPFILE \
     )
     if [ $? != 0 ]; then
-	_ "Неудача при попытке загрузить результаты инвентаризации!"
+	_ "Inventory results load failed!"
 	return $E_FAIL
     fi
 
@@ -419,9 +419,9 @@ checkInventoryInternal()
     INVENTORY_TIME=$(sql "SELECT inventory_time FROM vaults WHERE id = $VAULT_ID")
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ -z "$INVENTORY_TIME" -a $COUNT == 0 ]; then
-	_ "На данный момент не было выполнено ни одной инвентаризации."
-	_ "Сейчас инвентаризация хранилища будет запрошена."
-	_ "Ее результаты вы сможете увидеть позже, в течение нескольких часов."
+	_ "No inventory was completed yet."
+	_ "Now inventory will be requested."
+	_ "Its result will be ready after some hours."
 	requestInventory
 	return $E_NOTREADYYET
     fi
@@ -431,9 +431,9 @@ checkInventoryInternal()
     fi
 
     if [ -z "$INVENTORY_TIME" ]; then
-	_ "На данный момент не было выполнено ни одной инвентаризации."
-	_ "Инвентаризация хранилища была запрошена ранее, но результаты ее загрузить не удалось."
-	_ "Попробуйте запросить инвентаризацию еще раз."
+	_ "No inventory was completed yet."
+	_ "Storage inventory was requested before, but its results could not be loaded."
+	_ "Try to request an inventory once more."
 	return $E_FAIL
     fi
     
