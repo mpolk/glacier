@@ -380,7 +380,10 @@ loadInventory() {
 	return $E_FAIL
     fi
 
-    local QUERY="BEGIN;\nDELETE FROM inventory WHERE vault_id = $VAULT_ID;\n"
+    local QUERY="
+	BEGIN;
+	DELETE FROM inventory WHERE vault_id = $VAULT_ID;
+	"
     I=0
     while read LINE; do
 	((I++ == 0)) && continue
@@ -394,15 +397,18 @@ loadInventory() {
 	trace "CTIME=$CTIME"
 	trace "SIZE=$SIZE"
 	trace "CHECKSUM=$CHECKSUM"
-	QUERY="$QUERY\
-	    INSERT INTO inventory(vault_id, seq_no, archive_id, description, ctime, size, checksum) \
-		VALUES ($VAULT_ID, $I, '$ARCHIVE_ID', '$DESCRIPTION', $CTIME, $SIZE, '$CHECKSUM');\n"
+	QUERY="$QUERY
+	    INSERT INTO inventory(vault_id, seq_no, archive_id, description, ctime, size, checksum)
+		VALUES ($VAULT_ID, $I, '$ARCHIVE_ID', '$DESCRIPTION', $CTIME, $SIZE, '$CHECKSUM');
+	"
     done < $TMPFILE
 
-    QUERY="$QUERY\
-	UPDATE jobs SET status = $JST_COMPLETED WHERE id = '$JOB_ID';\n\
-        UPDATE vaults SET inventory_time = $(date +%s);\n\
+    QUERY="$QUERY
+	UPDATE jobs SET status = $JST_COMPLETED WHERE id = '$JOB_ID';
+        UPDATE vaults SET inventory_time = $(date +%s);
 	COMMIT"
+    trace $QUERY
+    sql $QUERY
     rm $TMPFILE
     return $S_OK
 } #loadInventory
