@@ -445,18 +445,18 @@ checkInventory()
 {
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ $COUNT == 0 ]; then
-	_ "На данный момент нет ни одного невыполненного запроса на инвентаризацию"
+	_ "Currently there is not any outstanding inventory requests"
 	return $E_FAIL
     fi
 
-    loadInventory && _ "Результаты инвентаризации успешно загружены в БД"
+    loadInventory && _ "Inventory results loaded successfully"
 } #checkInventory
 
 
 showInventory() {
     checkInventoryInternal || return $?
 
-    printf "$(_ "Инвентаризация от %s\n")" "$(date --date=@$INVENTORY_TIME +"%Y-%m-%d %H:%M")"
+    printf "$(_ "Inventory of %s\n")" "$(date --date=@$INVENTORY_TIME +"%Y-%m-%d %H:%M")"
     echo
     N=0
     TOTAL=0
@@ -499,8 +499,8 @@ synchronize() {
 	[ "$DIR" == '.' ] && DIR=
 	
 	if [ -z "$CAT_ROW" ]; then
-	    printf "$(_ "Архив \"%s\" имеется в хранилище, но отсутствует в каталоге\n")" $DESCRIPTION
-	    askYesNo "$(_ "Занести его в каталог?")" || continue
+	    printf "$(_ "Archive \"%s\" presents in Glacier, but its record is missing from the directory\n")" $DESCRIPTION
+	    askYesNo "$(_ "Record it to the directory?")" || continue
 	    if [ -z "$DIR" ]; then
 		DIR=NULL
 	    else
@@ -518,39 +518,39 @@ synchronize() {
 	trace "FSIZE0=$FSIZE0"
 	trace "IS_DELETED=$IS_DELETED"
 	if [ "$IS_DELETED" != 0 ]; then
-	    printf "$(_ "Архив \"%s\" имеется в хранилище, но удален из каталога\n")" $DESCRIPTION
-	    askYesNo "$(_ "Восстановить его?")" && sql "UPDATE archives SET is_deleted = 0 WHERE id = '$ARCHIVE_ID'"
+	    printf "$(_ "Archive \"%s\" presents in Glacier, but is removed from the directory\n")" $DESCRIPTION
+	    askYesNo "$(_ "Restore it?")" && sql "UPDATE archives SET is_deleted = 0 WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ "$NAME0" != "$NAME" ]; then
-	    printf "$(_ "Имя файла архива \"%s\" не совпадает с таковым в каталоге:\n")" $DESCRIPTION
-	    printf "$(_ "  В хранилище: %s\n")" "$NAME"
-	    printf "$(_ "  В каталоге:  %s\n")" "$NAME0"
-	    askYesNo "$(_ "Исправить данные в каталоге?")" && \
+	    printf "$(_ "Filename of the archive \"%s\" does not match with that in the directory:\n")" $DESCRIPTION
+	    printf "$(_ "  In Glacier:        %s\n")" "$NAME"
+	    printf "$(_ "  In the directory:  %s\n")" "$NAME0"
+	    askYesNo "$(_ "Fix data in the directory?")" && \
 		sql "UPDATE archives SET filename = '$NAME' WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ -n "$DIR" -a "$DIR0" != "$DIR" ]; then
-	    printf "$(_ "Маршрут файла архива \"%s\" не совпадает с таковым в каталоге:\n")" $DESCRIPTION
-	    printf "$(_ "  В хранилище: %s\n")" "$DIR"
-	    printf "$(_ "  В каталоге:  %s\n")" "$DIR0"
-	    askYesNo "$(_ "Исправить данные в каталоге?")" && \
+	    printf "$(_ "File path of the archive \"%s\" does not match with that in the directory:\n")" $DESCRIPTION
+	    printf "$(_ "  In Glacier:        %s\n")" "$DIR"
+	    printf "$(_ "  In the directory:  %s\n")" "$DIR0"
+	    askYesNo "$(_ "Fix data in the directory?")" && \
 		sql "UPDATE archives SET dir = '$DIR' WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ "$FSIZE0" != "$SIZE" ]; then
-	    printf "$(_ "Размер файла архива \"%s\" не совпадает с таковым в каталоге:\n")" $DESCRIPTION
-	    printf "$(_ "  В хранилище: %s\n")" "$FSIZE"
-	    printf "$(_ "  В каталоге:  %s\n")" "$FSIZE0"
-	    askYesNo "$(_ "Исправить данные в каталоге?")" && \
+	    printf "$(_ "File size of the archive \"%s\" does not match with that in the directory:\n")" $DESCRIPTION
+	    printf "$(_ "  In Glacier:        %s\n")" "$FSIZE"
+	    printf "$(_ "  In the directory:  %s\n")" "$FSIZE0"
+	    askYesNo "$(_ "Fix data in the directory?")" && \
 		sql "UPDATE archives SET fsize = $SIZE WHERE id = '$ARCHIVE_ID'"
 	fi
 	
 	if [ "$CHECKSUM0" != "$CHECKSUM" ]; then
 	    printf "$(_ "Контрольная сумма файла архива \"%s\" не совпадает с таковой в каталоге:\n")" $DESCRIPTION
-	    printf "$(_ "  В хранилище: %s\n")" "$CHECKSUM"
-	    printf "$(_ "  В каталоге:  %s\n")" "$CHECKSUM0"
-	    askYesNo "$(_ "Исправить данные в каталоге?")" && \
+	    printf "$(_ "  In Glacier:        %s\n")" "$CHECKSUM"
+	    printf "$(_ "  In the directory:  %s\n")" "$CHECKSUM0"
+	    askYesNo "$(_ "Fix data in the directory?")" && \
 		sql "UPDATE archives SET checksum = '$CHECKSUM' WHERE id = '$ARCHIVE_ID'"
 	fi
     done 3<<<"$ROWS"

@@ -133,55 +133,55 @@ msgid "Try to request an inventory once more."
 msgstr "Попробуйте запросить инвентаризацию еще раз."
 
 #: glacier:442
-msgid ""
+msgid "Currently there is not any outstanding inventory requests"
 msgstr "На данный момент нет ни одного невыполненного запроса на инвентаризацию"
 
 #: glacier:446
-msgid ""
+msgid "Inventory results loaded successfully"
 msgstr "Результаты инвентаризации успешно загружены в БД"
 
 #: glacier:453
-msgid ""
+msgid "Inventory of %s\\n"
 msgstr "Инвентаризация от %s\\n"
 
 #: glacier:496
-msgid ""
+msgid "Archive \"%s\" presents in Glacier, but its record is missing from the directory\\n"
 msgstr "Архив \"%s\" имеется в хранилище, но отсутствует в каталоге\\n"
 
 #: glacier:497
-msgid ""
+msgid "Record it to the directory?"
 msgstr "Занести его в каталог?"
 
 #: glacier:515
-msgid ""
+msgid "Archive \"%s\" presents in Glacier, but is removed from the directory\\n"
 msgstr "Архив \"%s\" имеется в хранилище, но удален из каталога\\n"
 
 #: glacier:516
-msgid ""
+msgid "Restore it?"
 msgstr "Восстановить его?"
 
 #: glacier:520
-msgid ""
+msgid "Filename of the archive \"%s\" does not match with that in the directory:\\n"
 msgstr "Имя файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
 
 #: glacier:521 glacier:529 glacier:537 glacier:545
-msgid ""
-msgstr "  В хранилище: %s\\n"
+msgid "  In Glacier:        %s\\n"
+msgstr "  В хранилище:  %s\\n"
 
 #: glacier:522 glacier:530 glacier:538 glacier:546
-msgid ""
+msgid "  In the directory:  %s\\n"
 msgstr "  В каталоге:  %s\\n"
 
 #: glacier:523 glacier:531 glacier:539 glacier:547
-msgid ""
+msgid "Fix data in the directory?"
 msgstr "Исправить данные в каталоге?"
 
 #: glacier:528
-msgid ""
+msgid "File path of the archive \"%s\" does not match with that in the directory:\\n"
 msgstr "Маршрут файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
 
 #: glacier:536
-msgid ""
+msgid "File size of the archive \"%s\" does not match with that in the directory:\\n"
 msgstr "Размер файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
 
 #: glacier:544
