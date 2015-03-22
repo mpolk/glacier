@@ -547,7 +547,7 @@ synchronize() {
 	fi
 	
 	if [ "$CHECKSUM0" != "$CHECKSUM" ]; then
-	    printf "$(_ "Контрольная сумма файла архива \"%s\" не совпадает с таковой в каталоге:\n")" $DESCRIPTION
+	    printf "$(_ "Checksum of the archive \"%s\" does not match with that in the directory:\n")" $DESCRIPTION
 	    printf "$(_ "  In Glacier:        %s\n")" "$CHECKSUM"
 	    printf "$(_ "  In the directory:  %s\n")" "$CHECKSUM0"
 	    askYesNo "$(_ "Fix data in the directory?")" && \
@@ -567,8 +567,8 @@ synchronize() {
 	trace "NAME=$NAME"
 	trace "DIR=$DIR"
 	[ -n "$DIR" ] && NAME="$DIR/$NAME"
-	printf "$(_ "Архив \"%s\" числится в каталоге, но отсутствует в хранилище\n")" $NAME
-	askYesNo "$(_ "Удалить его из каталога?")" && sql "DELETE FROM archives WHERE id = '$ARCHIVE_ID'"
+	printf "$(_ "Archive \"%s\" presents in the directory, but is missing from Glacier\n")" $NAME
+	askYesNo "$(_ "Delete it from the directory?")" && sql "DELETE FROM archives WHERE id = '$ARCHIVE_ID'"
     done 3<<<"$ROWS"
 } #synchronize
 

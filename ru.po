@@ -185,16 +185,16 @@ msgid "File size of the archive \"%s\" does not match with that in the directory
 msgstr "Размер файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
 
 #: glacier:544
-msgid ""
+msgid "Checksum of the archive \"%s\" does not match with that in the directory:\\n"
 msgstr ""
 "Контрольная сумма файла архива \"%s\" не совпадает с таковой в каталоге:\\n"
 
 #: glacier:564
-msgid ""
+msgid "Archive \"%s\" presents in the directory, but is missing from Glacier\\n"
 msgstr "Архив \"%s\" числится в каталоге, но отсутствует в хранилище\\n"
 
 #: glacier:565
-msgid ""
+msgid "Delete it from the directory?"
 msgstr "Удалить его из каталога?"
 
 #: glacier:578
