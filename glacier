@@ -595,7 +595,6 @@ requestDownload() {
 	    continue
 	fi
 
-
 	REPLY=$(\
 	    aws glacier initiate-job --account-id=- --output=json $DEBUG \
 		--vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
@@ -613,9 +612,8 @@ requestDownload() {
 				    AND status = $JST_INPROGRESS"
 	sql "INSERT INTO jobs(id, vault_id, archive_id, submission_time, location)
 	         VALUES ('$JOB_ID', $VAULT_ID, '$ARCHIVE_ID', $(date +%s), '$LOCATION')"
-	_ "File download request sent to AWS"
 
-	printf "$(_ "Запрос на выгрузку файла \"%s\"направлен в хранилище\n")" "$DIR" "$NAME"
+	printf "$(_ "Download request for the file \"%s%s\" sent to AWS\n")" "$DIR" "$NAME"
     done <<< "$ROWS";
 } #requestDownload
 

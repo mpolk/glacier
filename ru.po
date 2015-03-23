@@ -206,7 +206,7 @@ msgid "Download request for the file %s%s already sent to AWS.\\n"
 msgstr "Запрос на выгрузку файла %s%s уже отправлен в AWS.\\n"
 
 #: glacier:621
-msgid ""
+msgid "Download request for the file \"%s%s\" sent to AWS"
 msgstr "Запрос на выгрузку файла \"%s\"направлен в хранилище\\n"
 
 #: glacier:642
