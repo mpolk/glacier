@@ -198,11 +198,11 @@ msgid "Delete it from the directory?"
 msgstr "Удалить его из каталога?"
 
 #: glacier:578
-msgid ""
+msgid "There is no such file(s) in the directory!"
 msgstr "Указанный(-е) файл(-ы) в каталоге отсутствует(-ют)!"
 
 #: glacier:586
-msgid ""
+msgid "Download request for the file %s%s already sent to AWS.\\n"
 msgstr "Запрос на выгрузку файла %s%s уже отправлен в AWS.\\n"
 
 #: glacier:621

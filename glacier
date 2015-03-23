@@ -581,7 +581,7 @@ requestDownload() {
 
     ROWS=$(sql "SELECT id, filename, dir FROM archives WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER")
     if [ -z "$ROWS" ]; then
-	_ "Указанный(-е) файл(-ы) в каталоге отсутствует(-ют)!"
+	_ "There is no such file(s) in the directory!"
 	return $E_FAIL
     fi
 
@@ -589,42 +589,33 @@ requestDownload() {
 	[ -n "$DIR" ] && DIR="$DIR/"
 	COUNT=$(sql "SELECT count(1) FROM jobs WHERE archive_id = '$ARCHIVE_ID' AND status = $JST_INPROGRESS") #"
 	if [ $COUNT != 0 -a -z "$FORCE" ]; then
-	    printf "$(_ "Запрос на выгрузку файла %s%s уже отправлен в AWS.\n")" "$DIR" "$NAME"
-	    _ "Отправка еще одного запроса вряд ли целесообразна."
-	    _ "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f."
+	    printf "$(_ "Download request for the file %s%s already sent to AWS.\n")" "$DIR" "$NAME"
+	    _ "Sending another request usually does not make any sense."
+	    _ "If you still believe sending one more request is required, add \"-f\" option."
 	    continue
 	fi
 
-    REPLY=$(\
-	aws glacier describe-job --account-id=- --output=json $DEBUG \
-	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
-	    --job-id="$JOB_ID" \
-    )
-    if [ $? != 0 ]; then
-	_ "Неудача при попытке получить состояние задания!"
-	sql "UPDATE jobs SET status = $JST_FAILED WHERE id = '$JOB_ID'"
-	return $E_FAIL
-    fi
 
-    parseJson COMPLETED:Completed <<< "$REPLY"
-    trace "COMPLETED=$COMPLETED"
-    if [ "$COMPLETED" != "true" ]; then
-	_ "Запрос на инветаризацию еще не выполнен, данные не обновлены"
-	return $E_NOTREADYYET
-    fi
+	REPLY=$(\
+	    aws glacier initiate-job --account-id=- --output=json $DEBUG \
+		--vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
+		--job-parameters="{\"Type\": \"archive-retrieval\", \"ArchiveId\": \"$ARCHIVE_ID\"}" \
+	)
+	if [ $? != 0 ]; then
+	    _ "Job initialization failed!"
+	    return $E_FAIL
+	fi
 
-    TMPFILE=$(mktemp --tmpdir glacier-inventory-XXXXXXXX.csv)
-    REPLY=$(\
-	aws glacier get-job-output --account-id=- --output=json $DEBUG \
-	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
-	    --job-id="$JOB_ID" $TMPFILE \
-    )
-    if [ $? != 0 ]; then
-	_ "Неудача при попытке загрузить результаты инвентаризации!"
-	return $E_FAIL
-    fi
+	parseJson JOB_ID:jobId LOCATION:location <<< "$REPLY"
 
-    printf "$(_ "Запрос на выгрузку файла \"%s\"направлен в хранилище\n")" $DIR$NAME
+	[ $COUNT != 0 ] && sql "UPDATE jobs SET status = $JST_CANCELLED
+                                    WHERE vault_id = $VAULT_ID AND archive_id = '$ARCHIVE_ID'
+				    AND status = $JST_INPROGRESS"
+	sql "INSERT INTO jobs(id, vault_id, archive_id, submission_time, location)
+	         VALUES ('$JOB_ID', $VAULT_ID, '$ARCHIVE_ID', $(date +%s), '$LOCATION')"
+	_ "File download request sent to AWS"
+
+	printf "$(_ "Запрос на выгрузку файла \"%s\"направлен в хранилище\n")" "$DIR" "$NAME"
     done <<< "$ROWS";
 } #requestDownload
 
