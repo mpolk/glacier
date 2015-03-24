@@ -133,7 +133,7 @@ msgid "Try to request an inventory once more."
 msgstr "Попробуйте запросить инвентаризацию еще раз."
 
 #: glacier:442
-msgid "Currently there is not any outstanding inventory requests"
+msgid "Currently there are no outstanding inventory requests"
 msgstr "На данный момент нет ни одного невыполненного запроса на инвентаризацию"
 
 #: glacier:446
@@ -210,62 +210,62 @@ msgid "Download request for the file \"%s%s\" sent to AWS"
 msgstr "Запрос на выгрузку файла \"%s\"направлен в хранилище\\n"
 
 #: glacier:642
-msgid ""
+msgid "Currently there are no outstanding download requests!"
 msgstr ""
 "Какие-либо невыполненные задания на выгрузку файлов в каталоге отсутствует!"
 
 #: glacier:644
-msgid ""
+msgid "Currently there are no download requests for this file(s)!"
 msgstr ""
 "Запрос(-ы) на выгрузку для указанного файла(-ов) в каталоге отсутствуют!"
 
 #: glacier:645
-msgid ""
+msgid "You should request the download with the \"request\" command"
 msgstr ""
 "Следует сначала запросить выгрузку файла(-ов) с помощью команды \"request\""
 
 #: glacier:666
-msgid ""
+msgid "Download request for the file %s%s is not fulfilled yet, file skipped\\n"
 msgstr "Запрос на выгрузку файла %s%s еще не выполнен, файл пропущен\\n"
 
 #: glacier:690
-msgid ""
+msgid "Failure to download file %s%s!\\n"
 msgstr "Неудача при попытке выгрузить файл %s%s!\\n"
 
 #: glacier:705
-msgid ""
+msgid "No deleted files found"
 msgstr "Удаленных файлов в каталоге не найдено"
 
 #: glacier:709
-msgid ""
+msgid "Really purge all deleted files? Are you sure?"
 msgstr "Действительно вычистить все удаленные файлы? Вы уверены?"
 
 #: glacier:712
-msgid ""
+msgid "%d deleted files purged"
 msgstr "Вычищено %d удаленных файлов\\n"
 
 #: glacier:720
-msgid ""
+msgid "No completed jobs found"
 msgstr "Выполненных заданий в каталоге не найдено"
 
 #: glacier:724
-msgid ""
-msgstr "Действительно вычистить все выполненные задания ? Вы уверены?"
+msgid "Really purge all completed jobs? Are you sure?"
+msgstr "Действительно вычистить все выполненные задания? Вы уверены?"
 
 #: glacier:727
-msgid ""
-msgstr "Вычищено %s выполненных заданий\\n"
+msgid "%d completed jobs purged\\n"
+msgstr "Вычищено %d выполненных заданий\\n"
 
 #: glacier:746
-msgid ""
+msgid "You should specify what are going to purge: files|jobs|all"
 msgstr "Необходимо указать, что вы хотите вычистить: files|jobs|all"
 
 #: glacier:757
-msgid ""
+msgid "Initializing DB..."
 msgstr "Инициализируем БД..."
 
 #: glacier:781
-msgid ""
+msgid "Could not initialize DB!"
 msgstr "Не могу проинициализировать базу данных!"
 
 #: glacier:790
@@ -273,11 +273,11 @@ msgid "utility script for manipulation with AWS Glacier storage"
 msgstr "скрипт для выполнения операций с хранилищем AWS Glacier"
 
 #: glacier:792
-msgid ""
+msgid "  Usage:"
 msgstr "  Варианты использования скрипта:"
 
 #: glacier:793
-msgid ""
+msgid "sends file(s) to Glacier"
 msgstr "загрузить файл(-ы) в хранилище"
 
 #: glacier:794
