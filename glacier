@@ -786,31 +786,31 @@ showUsage() {
     echo
     _    "  Usage:"
     echo "    $SCRIPT upload <FILE>,..          -- " $(_ "sends file(s) to Glacier")
-    echo "    $SCRIPT ls [-lLa] [<FILE>,..]     -- " $(_ "показать листинг каталога (что у нас уже загружено)")
-    echo "      -a               -- " $(_ "показывать все файлы (в том числе и удаленные)")
-    echo "    $SCRIPT dir [-lLa] [<FILE>,..]    -- " $(_ "то же самое, что и \"ls\"")
-    echo "    $SCRIPT rm <FILE>,..              -- " $(_ "удалить архив(-ы) из хранилища")
-    echo "    $SCRIPT del <FILE>,..             -- " $(_ "то же самое, что и \"rm\"")
-    echo "    $SCRIPT request <FILE>,..         -- " $(_ "запросить выгрузку файла(-ов) из хранилища")
-    echo "    $SCRIPT request -                 -- " $(_ "запросить инвентаризацию хранилища")
-    echo "    $SCRIPT download [-o] [<FILE>,..] -- " $(_ "выгрузить файла(-ов) из хранилища (после выполнения запроса)")
-    echo "      -o <OUT-FILE>    -- " $(_ "выгрузить файл под другим именем/в другое место")
-    echo "    $SCRIPT inventory [-rflLс]        -- " $(_ "показать результаты инвентаризации")
-    echo "      -r               -- " $(_ "запросить инвентаризацию, то же, что \"request -\"")
-    echo "      -f               -- " $(_ "запросить новую инвентаризацию, даже если предыдущий запрос значится невыполненным")
-    echo "      -с               -- " $(_ "проверить результат выполнения запроса и в случае успеха сохранить его в БД")
-    echo "    $SCRIPT sync [-cy]                -- " $(_ "синхронизировать каталог с результатами последней инвентаризации")
-    echo "      -с               -- " $(_ "выполнить проверку на расхождение, но не писать ничего в БД")
-    echo "      -y               -- " $(_ "автоматически подразумевать положительный ответ на все вопросы")
-    echo "    $SCRIPT jobs [-lLa]               -- " $(_ "показать список заданий на выгрузку файлов и инвентаризацию")
-    echo "      -a               -- " $(_ "показывать все задания (в том числе и завершенные)")
-    echo "    $SCRIPT purge files|jobs|all      -- " $(_ "вычистить из каталога удаленные файлы и/или выполненные задания")
+    echo "    $SCRIPT ls [-lLa] [<FILE>,..]     -- " $(_ "shows a directory listing (what is already uploaded)")
+    echo "      -a               -- " $(_ "shows all files (including the deleted ones)")
+    echo "    $SCRIPT dir [-lLa] [<FILE>,..]    -- " $(_ "same as \"ls\"")
+    echo "    $SCRIPT rm <FILE>,..              -- " $(_ "removes files from Glacier")
+    echo "    $SCRIPT del <FILE>,..             -- " $(_ "same as \"rm\"")
+    echo "    $SCRIPT request <FILE>,..         -- " $(_ "requests file download from Glacier")
+    echo "    $SCRIPT request -                 -- " $(_ "requests Glacier inventory")
+    echo "    $SCRIPT download [-o] [<FILE>,..] -- " $(_ "downloads file(s) from Glacier (after request is fulfilled)")
+    echo "      -o <OUT-FILE>    -- " $(_ "downloads file with the alternate name/to alternate location")
+    echo "    $SCRIPT inventory [-rflLс]        -- " $(_ "shows inventory results")
+    echo "      -r               -- " $(_ "requests inventory, same as \"request -\"")
+    echo "      -f               -- " $(_ "requests a new inventory even if the previous one is marked as incomplete")
+    echo "      -с               -- " $(_ "checks the last inventory request results and store them to DB if they are ready")
+    echo "    $SCRIPT sync [-cy]                -- " $(_ "synchronizes directory with the last inventory results")
+    echo "      -с               -- " $(_ "checks for mismatches but doesn't write anything to DB")
+    echo "      -y               -- " $(_ "implies \"yes\" for all the questions")
+    echo "    $SCRIPT jobs [-lLa]               -- " $(_ "shows the list of jobs (requests) for download or inventory")
+    echo "      -a               -- " $(_ "shows all jobs (including the completed ones)")
+    echo "    $SCRIPT purge files|jobs|all      -- " $(_ "purges deleted files and completed jobs from the directory")
     echo
-       _ "  Общие ключи для всех команд:"
-    echo "      -d               -- " $(_ "отладочный режим")
-       _ "  Общие ключи для команд листинга и инвентаризации:"
-    echo "      -l               -- " $(_ "длинный режим листинга каталога или инвентаризации")
-    echo "      -L               -- " $(_ "еще более длинный режим листинга каталога или инвентаризации")
+       _ "  Common options for all comands:"
+    echo "      -d               -- " $(_ "debugging mode")
+       _ "  Common options for directory listing and inventory commands:"
+    echo "      -l               -- " $(_ "long listing mode")
+    echo "      -L               -- " $(_ "even longer listing mode")
     echo
 } #showUsage
 
@@ -831,7 +831,7 @@ elif [ -z "$VAULT" -o \
        -z "$AWS_SECRET_ACCESS_KEY" -o \
        -z "$AWS_DEFAULT_REGION" -o \
        -z "$DB" ]; then
-    echo Cannot read config file!
+    _ "Cannot read config file!"
     exit $E_FAIL
 fi
 
@@ -871,7 +871,7 @@ READONLY=
 if [ ! -f $DB ]; then
     initDB
 elif [ ! -r $DB ]; then
-    _ "База данных недоступна для чтения!"
+    _ "No read access to DB!"
     exit $E_FAIL
 elif [ ! -w $DB ]; then
     READONLY=1
@@ -897,7 +897,7 @@ case $CMD in
     re|req|requ|reque|reques|request)
 	shift
 	if [ -z "$1" ]; then
-	    _ 'Команда request требует обязательного параметра (шаблон имени файла или "-")'
+	    _ 'The \"request\" command requires a parameter (filename template or \"-\")'
 	    exit $E_FAIL
 	elif [ "$1" == '-' ]; then
 	    requestInventory

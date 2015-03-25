@@ -281,110 +281,113 @@ msgid "sends file(s) to Glacier"
 msgstr "загрузить файл(-ы) в хранилище"
 
 #: glacier:794
-msgid ""
+msgid "shows a directory listing (what is already uploaded)"
 msgstr "показать листинг каталога (что у нас уже загружено)"
 
 #: glacier:795
-msgid ""
+msgid "shows all files (including the deleted ones)"
 msgstr "показывать все файлы (в том числе и удаленные)"
 
 #: glacier:796
-msgid ""
+msgid "same as \"ls\""
 msgstr "то же самое, что и \"ls\""
 
 #: glacier:797
-msgid ""
+msgid "removes files from Glacier"
 msgstr "удалить архив(-ы) из хранилища"
 
 #: glacier:798
-msgid ""
+msgid "same as \"rm\""
 msgstr "то же самое, что и \"rm\""
 
 #: glacier:799
-msgid ""
+msgid "requests file download from Glacier"
 msgstr "запросить выгрузку файла(-ов) из хранилища"
 
 #: glacier:800
-msgid ""
+msgid "requests Glacier inventory"
 msgstr "запросить инвентаризацию хранилища"
 
 #: glacier:801
-msgid ""
+msgid "downloads file(s) from Glacier (after request is fulfilled)"
 msgstr "выгрузить файла(-ов) из хранилища (после выполнения запроса)"
 
 #: glacier:802
-msgid ""
+msgid "downloads file with the alternate name/to alternate location"
 msgstr "выгрузить файл под другим именем/в другое место"
 
 #: glacier:803
-msgid ""
+msgid "shows inventory results"
 msgstr "показать результаты инвентаризации"
 
 #: glacier:804
-msgid ""
+msgid "requests inventory, same as \"request -\""
 msgstr "запросить инвентаризацию, то же, что \"request -\""
 
 #: glacier:805
-msgid ""
+msgid "requests a new inventory even if the previous one is marked as incomplete"
 msgstr ""
 "запросить новую инвентаризацию, даже если предыдущий запрос значится "
 "невыполненным"
 
 #: glacier:806
-msgid ""
+msgid "checks the last inventory request results and store them to DB if they are ready"
 msgstr ""
 "проверить результат выполнения запроса и в случае успеха сохранить его в БД"
 
 #: glacier:807
-msgid ""
+msgid "synchronizes directory with the last inventory results"
 msgstr "синхронизировать каталог с результатами последней инвентаризации"
 
 #: glacier:808
-msgid ""
+msgid "checks for mismatches but doesn't write anything to DB"
 msgstr "выполнить проверку на расхождение, но не писать ничего в БД"
 
 #: glacier:809
-msgid ""
+msgid "implies \"yes\" for all the questions"
 msgstr "автоматически подразумевать положительный ответ на все вопросы"
 
 #: glacier:810
-msgid ""
+msgid "shows the list of jobs (requests) for download or inventory"
 msgstr "показать список заданий на выгрузку файлов и инвентаризацию"
 
 #: glacier:811
-msgid ""
+msgid "shows all jobs (including the completed ones)"
 msgstr "показывать все задания (в том числе и завершенные)"
 
 #: glacier:812
-msgid ""
+msgid "purges deleted files and completed jobs from the directory"
 msgstr "вычистить из каталога удаленные файлы и/или выполненные задания"
 
 #: glacier:814
-msgid ""
+msgid "  Common options for all comands:"
 msgstr "  Общие ключи для всех команд:"
 
 #: glacier:815
-msgid ""
+msgid "debugging mode"
 msgstr "отладочный режим"
 
 #: glacier:816
-msgid ""
+msgid "  Common options for directory listing and inventory commands:"
 msgstr "  Общие ключи для команд листинга и инвентаризации:"
 
 #: glacier:817
-msgid ""
+msgid "long listing mode"
 msgstr "длинный режим листинга каталога или инвентаризации"
 
 #: glacier:818
-msgid ""
+msgid "even longer listing mode"
 msgstr "еще более длинный режим листинга каталога или инвентаризации"
 
+msgid "Cannot read config file!"
+msgstr "Невозможно прочитать файл конфигурации!"
+
 #: glacier:879
-msgid ""
+msgid "No read access to DB!"
 msgstr "База данных недоступна для чтения!"
 
 #: glacier:905
-msgid ""
+msgid "The \"request\" command requires a parameter (filename template or \"-\")"
 msgstr ""
-"Команда request требует обязательного параметра (шаблон имени файла или \"-"
+"Команда \"request\" требует обязательного параметра (шаблон имени файла или \"-"
 "\")"
