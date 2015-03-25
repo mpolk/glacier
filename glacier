@@ -22,8 +22,7 @@ readonly JST_CANCELLED=3
 
 
 _() {
-    export local TEXTDOMAIN=mpolk-glacier
-    gettext -s $*
+    gettext -d mpolk-glacier -s "$*"
 } #_
 
 
