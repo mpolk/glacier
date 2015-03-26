@@ -1,7 +1,9 @@
 #!/bin/bash
 #----------------------------------------------------------------------------------
-# Скрипт для манипуляций с облачным хранилищем Amazon Web Services (AWS) Glacier
-# Для получения кратких инструкций по использованию запустите его без параметров
+# Utiluty script for manipulation with Amazon Web Services (AWS) Glacier 
+# cloud storage
+#
+# Run it without arguments to see a brief usage instruction
 #----------------------------------------------------------------------------------
 # Copyright (c) 2015 Dmitriy Stepanenko
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,7 +25,9 @@
 # SOFTWARE.
 #----------------------------------------------------------------------------------
 
-# Коды завершения процедур
+## Various constants ##
+
+# Function exit codes:
 readonly S_SUCCESS=0
 readonly S_OK=0
 readonly S_NO=1
@@ -33,18 +37,22 @@ readonly E_NOSUCHOBJECT=3
 readonly E_ALREADYEXISTS=4
 readonly E_NOTREADYYET=5
 
-# Коды состояния заданий для AWS Glacier
+# Job status codes:
 readonly JST_INPROGRESS=0
 readonly JST_COMPLETED=1
 readonly JST_FAILED=2
 readonly JST_CANCELLED=3
 
 
+## Auxiliary general-purpose procedures ##
+
+# Shortcut for GNU gettext invocation
 _() {
     gettext -d mpolk-glacier -s "$*"
 } #_
 
 
+# Test for write permission to DB
 assertRWAccess() {
     if [ -n "$READONLY" ]; then
 	_ "No write access to DB! Operation aborted."
@@ -55,24 +63,33 @@ assertRWAccess() {
 } #assertRWAccess
 
 
+# Emitting debug messages
 trace() {
     [ -n "$DEBUG" ] && echo "[DEBUG] $*"
 } #trace
 
 
+# Invoking SQLite command line client
 sql() {
     sqlite3 $DB "$*"
 } #sql
 
 
+# Parsing JSON replies from AWS
+#  Data for parsing are fed from the standard input
+#  The arguments should be a sequence of VAR:FIELD pairs:
+#    VAR1:field1 VAR2:field2 VAR3:field3... VARn:fieldn
+#  The value of each JSON field "fieldi" is assigned to the variable VARi
+#  when detected
 parseJson() {
-    ARGS=$@
+    local ARGS=$@
+    local LINE
     while read LINE; do
 	trace "LINE=$LINE"
 	set -- $ARGS
 	while [ $# -gt 0 ]; do
-	    VAR=${1%%:*}
-	    FIELD=${1#*:}
+	    local VAR=${1%%:*}
+	    local FIELD=${1#*:}
 	    trace "#=$#; VAR=$VAR; FIELD=$FIELD"
 	    shift
 	    if grep -Pq "^\s*\"$FIELD\":\s\"(\S+)\",?\s*$" <<<$LINE; then
@@ -88,38 +105,6 @@ parseJson() {
 	done
     done
 } #parseJson
-
-
-upload() {
-    assertRWAccess || return $E_FAIL
-
-    FILENAME=$(basename $1)
-    DIR=$(dirname $(readlink -e $1))
-    FSIZE=$(stat -L -c%s $1)
-    CTIME=$(stat -L -c%W $1)
-    MTIME=$(stat -L -c%Y $1)
-    #read CHECKSUM DUMMY <<<$(sha256sum $1)
-    echo -n "$1 -> $VAULT ... "
-    REPLY=$(\
-	aws glacier upload-archive --account-id=- --archive-description="$DIR/$FILENAME" --output=json $DEBUG \
-	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" --body="$1" \
-#	    --vault-name="$VAULT" --checksum="$CHECKSUM" --region="$AWS_DEFAULT_REGION" --body="$1" \
-    )
-    if [ $? != 0 ]; then
-	echo
-	_ "Upload failed!"
-	return $E_FAIL
-    fi
-    echo OK
-
-    parseJson ARCHIVE_ID:archiveId CHECKSUM:checksum LOCATION:location <<< "$REPLY"
-
-    sql "INSERT INTO archives(id, vault_id, filename, dir, fsize, ctime, mtime, checksum, location) \
-	    VALUES ('$ARCHIVE_ID', 1, '$FILENAME', '$DIR', $FSIZE, $CTIME, $MTIME, '$CHECKSUM', '$LOCATION')"
-    trace "ArchiveID: $ARCHIVE_ID"
-    trace "CheckSum:  $CHECKSUM"
-    trace "Location:  $LOCATION"
-} #upload
 
 
 makeFileFilter()
@@ -168,6 +153,38 @@ askYesNo() {
 	    ;;
     esac
 } #askYesNo
+
+
+upload() {
+    assertRWAccess || return $E_FAIL
+
+    FILENAME=$(basename $1)
+    DIR=$(dirname $(readlink -e $1))
+    FSIZE=$(stat -L -c%s $1)
+    CTIME=$(stat -L -c%W $1)
+    MTIME=$(stat -L -c%Y $1)
+    #read CHECKSUM DUMMY <<<$(sha256sum $1)
+    echo -n "$1 -> $VAULT ... "
+    REPLY=$(\
+	aws glacier upload-archive --account-id=- --archive-description="$DIR/$FILENAME" --output=json $DEBUG \
+	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" --body="$1" \
+#	    --vault-name="$VAULT" --checksum="$CHECKSUM" --region="$AWS_DEFAULT_REGION" --body="$1" \
+    )
+    if [ $? != 0 ]; then
+	echo
+	_ "Upload failed!"
+	return $E_FAIL
+    fi
+    echo OK
+
+    parseJson ARCHIVE_ID:archiveId CHECKSUM:checksum LOCATION:location <<< "$REPLY"
+
+    sql "INSERT INTO archives(id, vault_id, filename, dir, fsize, ctime, mtime, checksum, location) \
+	    VALUES ('$ARCHIVE_ID', 1, '$FILENAME', '$DIR', $FSIZE, $CTIME, $MTIME, '$CHECKSUM', '$LOCATION')"
+    trace "ArchiveID: $ARCHIVE_ID"
+    trace "CheckSum:  $CHECKSUM"
+    trace "Location:  $LOCATION"
+} #upload
 
 
 list() {
