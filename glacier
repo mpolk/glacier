@@ -107,6 +107,9 @@ parseJson() {
 } #parseJson
 
 
+# Constructing SQL clause for filtering files (archives) matching
+# a sequence of glob patterns. Subclauses constructed form the 
+# individual patterns are ORed.
 makeFileFilter()
 {
     local FILTER=""
@@ -127,6 +130,7 @@ makeFileFilter()
 } #makeFileFilter
 
 
+# A variation of the previous function
 makeFileFilterWithAnd()
 {
     local FILTER=$(makeFileFilter $@)
@@ -135,6 +139,7 @@ makeFileFilterWithAnd()
 } #makeFileFilterWithAnd
 
 
+# Asking a user for the confirmation (before file deletion and like)
 askYesNo() {
     [ -z "$CHECKONLY" ] || return $S_NO
     [ -n "$ALWAYSYES" ] && return $S_OK
@@ -154,6 +159,8 @@ askYesNo() {
     esac
 } #askYesNo
 
+
+## Implementation of the CLI commands ##
 
 upload() {
     assertRWAccess || return $E_FAIL
