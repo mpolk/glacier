@@ -861,28 +861,9 @@ showUsage() {
 } #showUsage
 
 
-## Here we are starting ##
+## Here we start ##
 
-# Look for the rc-file with sensitive local settings
-RCFILE=$(dirname $0)/.$(basename $0)
-[ -f $RCFILE -a -r $RCFILE ] || RCFILE=~/.$(basename $0)
-[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/etc/$(basename $0).conf
-[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/usr/local/etc/$(basename $0).conf
-if [ -f $RCFILE -a -r $RCFILE ]; then
-    . $RCFILE
-    export AWS_ACCESS_KEY_ID
-    export AWS_SECRET_ACCESS_KEY
-    export AWS_DEFAULT_REGION
-elif [ -z "$VAULT" -o \
-       -z "$AWS_ACCESS_KEY_ID" -o \
-       -z "$AWS_SECRET_ACCESS_KEY" -o \
-       -z "$AWS_DEFAULT_REGION" -o \
-       -z "$DB" ]; then
-    _ "Cannot read config file!"
-    exit $E_FAIL
-fi
-
-
+# Parse the command string
 OPTSTRING=dlLrfcyao:
 ARGS=$(getopt $OPTSTRING $*)
 if [ $? != 0 ]; then
@@ -913,6 +894,25 @@ done
 
 shift $(($OPTIND-1))
 
+
+# Look for the config file and source it
+RCFILE=$(dirname $0)/.$(basename $0)
+[ -f $RCFILE -a -r $RCFILE ] || RCFILE=~/.$(basename $0)
+[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/etc/$(basename $0).conf
+[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/usr/local/etc/$(basename $0).conf
+if [ -f $RCFILE -a -r $RCFILE ]; then
+    . $RCFILE
+    export AWS_ACCESS_KEY_ID
+    export AWS_SECRET_ACCESS_KEY
+    export AWS_DEFAULT_REGION
+elif [ -z "$VAULT" -o \
+       -z "$AWS_ACCESS_KEY_ID" -o \
+       -z "$AWS_SECRET_ACCESS_KEY" -o \
+       -z "$AWS_DEFAULT_REGION" -o \
+       -z "$DB" ]; then
+    _ "Cannot read config file!"
+    exit $E_FAIL
+fi
 
 READONLY=
 if [ ! -f $DB ]; then
