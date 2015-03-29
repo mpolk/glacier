@@ -750,7 +750,6 @@ purgeFiles() {
 } #purgeFiles
 
 
-
 purgeJobs() {
     COUNT=$(sql "SELECT count(1) FROM jobs WHERE status <> 0")
     if [ $COUNT == 0 ]; then
@@ -790,6 +789,10 @@ purge() {
 } #purge
 
 
+## Some more auxiliary procedures used by the main script ##
+
+# Database initialization: creating tables and indices (the DB file
+# itself is created automatically with SQLite)
 initDB() {
     echo -n $(_ "Initializing DB...")
     if sql "\
@@ -821,6 +824,7 @@ initDB() {
 } #initDB
 
 
+# Built-in minihelp
 showUsage() {
     local SCRIPT=$(basename $0)
     echo
@@ -857,12 +861,13 @@ showUsage() {
 } #showUsage
 
 
-# Here we are starting
+## Here we are starting ##
 
 # Look for the rc-file with sensitive local settings
 RCFILE=$(dirname $0)/.$(basename $0)
 [ -f $RCFILE -a -r $RCFILE ] || RCFILE=~/.$(basename $0)
-[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/usr/local/etc/$(basename $0)
+[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/etc/$(basename $0).conf
+[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/usr/local/etc/$(basename $0).conf
 if [ -f $RCFILE -a -r $RCFILE ]; then
     . $RCFILE
     export AWS_ACCESS_KEY_ID
