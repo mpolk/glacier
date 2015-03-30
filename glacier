@@ -824,7 +824,7 @@ initDB() {
 } #initDB
 
 
-# Built-in minihelp
+# Built-in mini-help
 showUsage() {
     local SCRIPT=$(basename $0)
     echo
@@ -853,6 +853,7 @@ showUsage() {
     echo "    $SCRIPT purge files|jobs|all      -- " $(_ "purges deleted files and completed jobs from the directory")
     echo
        _ "  Common options for all comands:"
+    echo "      -C <CONFIG-FILE> -- " $(_ "tells to use <CONFIG-FILE> instead of the predefined ones")
     echo "      -d               -- " $(_ "debugging mode")
        _ "  Common options for directory listing and inventory commands:"
     echo "      -l               -- " $(_ "long listing mode")
@@ -864,7 +865,7 @@ showUsage() {
 ## Here we start ##
 
 # Parse the command string
-OPTSTRING=dlLrfcyao:
+OPTSTRING=dlLrfcyao:C:
 ARGS=$(getopt $OPTSTRING $*)
 if [ $? != 0 ]; then
     showUsage
@@ -877,6 +878,7 @@ FORCE=
 INVENTORY_OP=show
 SHOWALL=
 OUTFILE=
+CONFFILE=
 set -- $ARGS
 while getopts $OPTSTRING OPTION; do
     case $OPTION in
@@ -889,6 +891,7 @@ while getopts $OPTSTRING OPTION; do
 	y) ALWAYSYES=1;;
 	a) SHOWALL=1;;
 	o) OUTFILE=$OPTARG;;
+	C) CONFFILE=$OPTARG;;
     esac
 done
 
@@ -896,12 +899,14 @@ shift $(($OPTIND-1))
 
 
 # Look for the config file and source it
-RCFILE=$(dirname $0)/.$(basename $0)
-[ -f $RCFILE -a -r $RCFILE ] || RCFILE=~/.$(basename $0)
-[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/etc/$(basename $0).conf
-[ -f $RCFILE -a -r $RCFILE ] || RCFILE=/usr/local/etc/$(basename $0).conf
-if [ -f $RCFILE -a -r $RCFILE ]; then
-    . $RCFILE
+if [ -z "$CONFFILE" ]; then
+    CONFFILE=/etc/$(basename $0).conf
+    [ -f $CONFFILE -a -r $CONFFILE ] || CONFFILE=/usr/local/etc/$(basename $0).conf
+fi
+if [ -f $CONFFILE -a -r $CONFFILE ]; then
+    . $CONFFILE
+    RCFILE=~/.$(basename $0)
+    [ -f $RCFILE -a -r $RCFILE ] && . $RCFILE
     export AWS_ACCESS_KEY_ID
     export AWS_SECRET_ACCESS_KEY
     export AWS_DEFAULT_REGION
@@ -914,6 +919,9 @@ elif [ -z "$VAULT" -o \
     exit $E_FAIL
 fi
 
+
+# Check if the database exists, create it if it does not and check if we have
+# write access to it if it exists
 READONLY=
 if [ ! -f $DB ]; then
     initDB
@@ -925,6 +933,7 @@ elif [ ! -w $DB ]; then
 fi
 
 
+# And at last execute the command we received from the command line
 CMD=$1
 case $CMD in
     up|upl|uplo|uploa|upload)
@@ -952,7 +961,7 @@ case $CMD in
 	    requestDownload $@
 	fi
 	;;
-    dow|down|downl|downlo|downloa|download)
+    do|dow|down|downl|downlo|downloa|download)
 	shift
 	download $@
 	;;
@@ -968,7 +977,7 @@ case $CMD in
     sy|syn|sync)
 	synchronize
 	;;
-    j|jo|job|jobs)
+    jo|job|jobs)
 	listJobs
 	;;
     pu|pur|purg|purge)
