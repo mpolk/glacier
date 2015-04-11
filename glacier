@@ -287,67 +287,47 @@ listJobs() {
 
 remove() {
     assertRWAccess || return $E_FAIL
+    trace "ARGS=\"$*\""
+    local FILTER=$(makeFileFilter $@)
+    trace "filter=\"$FILTER\""
 
-    FILENAME=$(basename $1)
-    DIR=$(dirname $1)
-
-    QUERY="SELECT count(*) FROM archives WHERE NOT is_deleted AND filename = '$FILENAME'"
-    if [ "$DIR" != "." ]; then
-	QUERY="$QUERY AND dir = '$DIR'"
-    fi
-    COUNT=$(sql "$QUERY")
-
-    case $COUNT in
-	0)
-	    printf "$(_ "No such archive: %s!")\n" $1
-	    return $E_NOSUCHOBJECT
-	    ;;
-	1)
-	    printf "$(_ "Really delete archive %s? Are you sure? (yes/no) ")" $1
-	    while true; do
-		read
-		case "$REPLY" in
-		    yes) break;;
-		    no) return $E_CANCELLED;;
-		    *) echo -n "  yes or no? ";;
-		esac
-	    done
-	    ;;
-	*)
-	    printf "$(_ "Found %d archive(s) with the name %s. Are you sure you want to delete them all (yes/no) ")" $COUNT $1
-	    while true; do
-		read
-		case "$REPLY" in
-		    yes) break;;
-		    no) return $E_CANCELLED;;
-		    *) echo -n "  yes or no? ";;
-		esac
-	    done
-	    printf "$(_ "Are you sure you want to delete all %d acrhives?? (yes/no) ")" $COUNT
-	    while true; do
-		read
-		case "$REPLY" in
-		    yes) break;;
-		    no) return $E_CANCELLED;;
-		    *) echo -n "  yes or no? ";;
-		esac
-	    done
-	    ;;
-    esac
-
-    QUERY="SELECT id FROM archives WHERE NOT is_deleted AND filename = '$FILENAME'"
-    [ "$DIR" != "." ] && QUERY="$QUERY AND dir = '$DIR'"
+    local QUERY="SELECT id, dir, filename FROM archives WHERE NOT is_deleted AND $FILTER"
     trace $QUERY
-    IDS=$(sql "$QUERY")
+    local ROWS=$(sql "$QUERY")
 
-    while read ARCHIVE_ID; do
-	printf "$(_ "Deleting archive \"%s\"")" $ARCHIVE_ID
-	if aws glacier delete-archive --account-id=- --archive-id="$ARCHIVE_ID" $DEBUG \
-	     --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION"
-	then
-	    sql "UPDATE archives SET is_deleted = 1 WHERE id = '$ARCHIVE_ID'"
-	fi
-    done <<<"$IDS"
+    if [ -z "$ROWS" ]; then
+	printf "$(_ "No such archive: %s!")\n" "$*"
+	return $E_NOSUCHOBJECT
+    fi
+
+    local ARCHIVE_ID DIR FILE
+    while IFS='|' read -u3 ARCHIVE_ID DIR FILE; do
+	[ -n "$DIR" ] && DIR="$DIR/"
+	printf "$(_ "Are you sure you want to delete acrhive %s%s? (yes/no) ")" "$DIR" "$FILE"
+	while true; do
+	    read
+	    case "$REPLY" in
+		yes)
+		    printf "$(_ "Deleting archive \"%s\"... ")" $ARCHIVE_ID
+		    if aws glacier delete-archive --account-id=- --archive-id="$ARCHIVE_ID" $DEBUG \
+			 --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION"
+		    then
+			sql "UPDATE archives SET is_deleted = 1 WHERE id = '$ARCHIVE_ID'"
+			echo OK
+		    else
+			_ "Deletion failed!"
+		    fi
+		    break
+		    ;;
+		no) 
+		    break
+		    ;;
+		*) 
+		    echo -n "  yes or no? "
+		    ;;
+	    esac
+	done
+    done 3<<<"$ROWS"
 } #remove
 
 
@@ -946,9 +926,8 @@ case $CMD in
 	list $@
 	;;
     rm|del)
-	while shift && [ -n "$1" ]; do
-	    remove $1
-	done
+	shift
+	remove $@
 	;;
     re|req|requ|reque|reques|request)
 	shift

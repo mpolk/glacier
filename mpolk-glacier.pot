@@ -17,358 +17,362 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: glacier:32
-msgid "Отсутствует доступ на запись в БД! Операция запрещена."
+#: glacier:58
+msgid "No write access to DB! Operation aborted."
 msgstr ""
 
-#: glacier:92
-msgid "Неудачная загрузка архива!"
+#: glacier:182
+msgid "Upload failed!"
 msgstr ""
 
-#: glacier:206 glacier:476
-msgid "\\n    Всего %d МиБ в %d архивах\\n\\n"
+#: glacier:248 glacier:504
+msgid "\\n    Total %d MiB in %d archives\\n\\n"
 msgstr ""
 
-#: glacier:221
-msgid "<ИНВЕНТАРИЗАЦИЯ>"
+#: glacier:263
+msgid "<INVENTORY>"
 msgstr ""
 
-#: glacier:225
+#: glacier:267
 msgid "in-progress"
 msgstr ""
 
-#: glacier:226
+#: glacier:268
 msgid "completed"
 msgstr ""
 
-#: glacier:227
+#: glacier:269
 msgid "failed"
 msgstr ""
 
-#: glacier:228
+#: glacier:270
 msgid "cancelled"
 msgstr ""
 
-#: glacier:260
-msgid "Нет такого архива: %s!"
+#: glacier:299
+msgid "No such archive: %s!"
 msgstr ""
 
-#: glacier:264
-msgid "Действительно удалить архив %s? Вы уверены? (yes/no) "
+#: glacier:306
+msgid "Are you sure you want to delete acrhive %s%s? (yes/no) "
 msgstr ""
 
-#: glacier:275
-msgid "Найдено %d архив(-а,-ов) с именем %s? Вы действительно хотите удалить их всех? (yes/no) "
+#: glacier:311
+msgid "Deleting archive \"%s\"... "
 msgstr ""
 
-#: glacier:284
-msgid "Вы действительно хотите удалить все %d архив(-а,-ов)?? (yes/no) "
-msgstr ""
-
-#: glacier:302
-msgid "Удаляем архив \"%s\""
-msgstr ""
-
-#: glacier:317
-msgid "Запрос на инвентаризацию уже отправлен в AWS."
-msgstr ""
-
-#: glacier:318 glacier:587
-msgid "Отправка еще одного запроса вряд ли целесообразна."
-msgstr ""
-
-#: glacier:319 glacier:588
-msgid "Если вы считаете, что послать повторный запрос все-таки надо, добавьте ключ -f."
-msgstr ""
-
-#: glacier:329
-msgid "Неудача при инициализации задания!"
+#: glacier:318
+msgid "Deletion failed!"
 msgstr ""
 
 #: glacier:339
-msgid "Запрос на инвентаризацию направлен в хранилище"
+msgid "Inventory request already sent to AWS."
 msgstr ""
 
-#: glacier:344
-msgid "Обновляем результаты инвентаризации хранилища..."
+#: glacier:340 glacier:615
+msgid "Sending another request usually does not make any sense."
 msgstr ""
 
-#: glacier:360 glacier:598 glacier:658
-msgid "Неудача при попытке получить состояние задания!"
+#: glacier:341 glacier:616
+msgid "If you still believe sending one more request is required, add \"-f\" option."
 msgstr ""
 
-#: glacier:368 glacier:606
-msgid "Запрос на инветаризацию еще не выполнен, данные не обновлены"
+#: glacier:351 glacier:626
+msgid "Job initialization failed!"
 msgstr ""
 
-#: glacier:379 glacier:617
-msgid "Неудача при попытке загрузить результаты инвентаризации!"
+#: glacier:361
+msgid "Inventory request sent to AWS"
 msgstr ""
 
-#: glacier:416 glacier:428
-msgid "На данный момент не было выполнено ни одной инвентаризации."
+#: glacier:366
+msgid "Trying to reload storage inventory results..."
 msgstr ""
 
-#: glacier:417
-msgid "Сейчас инвентаризация хранилища будет запрошена."
+#: glacier:382 glacier:675
+msgid "Job status request failed!"
 msgstr ""
 
-#: glacier:418
-msgid "Ее результаты вы сможете увидеть позже, в течение нескольких часов."
+#: glacier:390
+msgid "Inventory request is not fulfilled yet, data is not refreshed"
 msgstr ""
 
-#: glacier:429
-msgid "Инвентаризация хранилища была запрошена ранее, но результаты ее загрузить не удалось."
+#: glacier:401
+msgid "Inventory results load failed!"
 msgstr ""
 
-#: glacier:430
-msgid "Попробуйте запросить инвентаризацию еще раз."
+#: glacier:444 glacier:456
+msgid "No inventory was completed yet."
 msgstr ""
 
-#: glacier:442
-msgid "На данный момент нет ни одного невыполненного запроса на инвентаризацию"
+#: glacier:445
+msgid "Now inventory will be requested."
 msgstr ""
 
 #: glacier:446
-msgid "Результаты инвентаризации успешно загружены в БД"
+msgid "Its result will be ready after some hours."
 msgstr ""
 
-#: glacier:453
-msgid "Инвентаризация от %s\\n"
+#: glacier:457
+msgid "Storage inventory was requested before, but its results could not be loaded."
 msgstr ""
 
-#: glacier:496
-msgid "Архив \"%s\" имеется в хранилище, но отсутствует в каталоге\\n"
+#: glacier:458
+msgid "Try to request an inventory once more."
 msgstr ""
 
-#: glacier:497
-msgid "Занести его в каталог?"
+#: glacier:470
+msgid "Currently there are no outstanding inventory requests"
 msgstr ""
 
-#: glacier:515
-msgid "Архив \"%s\" имеется в хранилище, но удален из каталога\\n"
+#: glacier:474
+msgid "Inventory results loaded successfully"
 msgstr ""
 
-#: glacier:516
-msgid "Восстановить его?"
+#: glacier:481
+msgid "Inventory of %s\\n"
 msgstr ""
 
-#: glacier:520
-msgid "Имя файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
+#: glacier:524
+msgid "Archive \"%s\" presents in Glacier, but its record is missing from the directory\\n"
 msgstr ""
 
-#: glacier:521 glacier:529 glacier:537 glacier:545
-msgid "  В хранилище: %s\\n"
+#: glacier:525
+msgid "Record it to the directory?"
 msgstr ""
 
-#: glacier:522 glacier:530 glacier:538 glacier:546
-msgid "  В каталоге:  %s\\n"
-msgstr ""
-
-#: glacier:523 glacier:531 glacier:539 glacier:547
-msgid "Исправить данные в каталоге?"
-msgstr ""
-
-#: glacier:528
-msgid "Маршрут файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
-msgstr ""
-
-#: glacier:536
-msgid "Размер файла архива \"%s\" не совпадает с таковым в каталоге:\\n"
+#: glacier:543
+msgid "Archive \"%s\" presents in Glacier, but is removed from the directory\\n"
 msgstr ""
 
 #: glacier:544
-msgid "Контрольная сумма файла архива \"%s\" не совпадает с таковой в каталоге:\\n"
+msgid "Restore it?"
+msgstr ""
+
+#: glacier:548
+msgid "Filename of the archive \"%s\" does not match with that in the directory:\\n"
+msgstr ""
+
+#: glacier:549 glacier:557 glacier:565 glacier:573
+msgid "  In Glacier:        %s\\n"
+msgstr ""
+
+#: glacier:550 glacier:558 glacier:566 glacier:574
+msgid "  In the directory:  %s\\n"
+msgstr ""
+
+#: glacier:551 glacier:559 glacier:567 glacier:575
+msgid "Fix data in the directory?"
+msgstr ""
+
+#: glacier:556
+msgid "File path of the archive \"%s\" does not match with that in the directory:\\n"
 msgstr ""
 
 #: glacier:564
-msgid "Архив \"%s\" числится в каталоге, но отсутствует в хранилище\\n"
+msgid "File size of the archive \"%s\" does not match with that in the directory:\\n"
 msgstr ""
 
-#: glacier:565
-msgid "Удалить его из каталога?"
+#: glacier:572
+msgid "Checksum of the archive \"%s\" does not match with that in the directory:\\n"
 msgstr ""
 
-#: glacier:578
-msgid "Указанный(-е) файл(-ы) в каталоге отсутствует(-ют)!"
+#: glacier:592
+msgid "Archive \"%s\" presents in the directory, but is missing from Glacier\\n"
 msgstr ""
 
-#: glacier:586
-msgid "Запрос на выгрузку файла %s%s уже отправлен в AWS.\\n"
+#: glacier:593
+msgid "Delete it from the directory?"
 msgstr ""
 
-#: glacier:621
-msgid "Запрос на выгрузку файла \"%s\"направлен в хранилище\\n"
+#: glacier:606
+msgid "There is no such file(s) in the directory!"
 msgstr ""
 
-#: glacier:642
-msgid "Какие-либо невыполненные задания на выгрузку файлов в каталоге отсутствует!"
+#: glacier:614
+msgid "Download request for the file %s%s already sent to AWS.\\n"
 msgstr ""
 
-#: glacier:644
-msgid "Запрос(-ы) на выгрузку для указанного файла(-ов) в каталоге отсутствуют!"
+#: glacier:638
+msgid "Download request for the file \"%s%s\" sent to AWS\\n"
 msgstr ""
 
-#: glacier:645
-msgid "Следует сначала запросить выгрузку файла(-ов) с помощью команды \"request\""
+#: glacier:659
+msgid "Currently there are no outstanding download requests!"
 msgstr ""
 
-#: glacier:666
-msgid "Запрос на выгрузку файла %s%s еще не выполнен, файл пропущен\\n"
+#: glacier:661
+msgid "Currently there are no download requests for this file(s)!"
 msgstr ""
 
-#: glacier:690
-msgid "Неудача при попытке выгрузить файл %s%s!\\n"
+#: glacier:662
+msgid "You should request the download with the \"request\" command"
 msgstr ""
 
-#: glacier:705
-msgid "Удаленных файлов в каталоге не найдено"
+#: glacier:683
+msgid "Download request for the file %s%s is not fulfilled yet, file skipped\\n"
 msgstr ""
 
-#: glacier:709
-msgid "Действительно вычистить все удаленные файлы? Вы уверены?"
+#: glacier:707
+msgid "Failure to download file %s%s!\\n"
 msgstr ""
 
-#: glacier:712
-msgid "Вычищено %d удаленных файлов\\n"
+#: glacier:722
+msgid "No deleted files found"
 msgstr ""
 
-#: glacier:720
-msgid "Выполненных заданий в каталоге не найдено"
+#: glacier:726
+msgid "Really purge all deleted files? Are you sure?"
 msgstr ""
 
-#: glacier:724
-msgid "Действительно вычистить все выполненные задания ? Вы уверены?"
+#: glacier:729
+msgid "%d deleted files purged\\n"
 msgstr ""
 
-#: glacier:727
-msgid "Вычищено %s выполненных заданий\\n"
+#: glacier:736
+msgid "No completed jobs found"
 msgstr ""
 
-#: glacier:746
-msgid "Необходимо указать, что вы хотите вычистить: files|jobs|all"
+#: glacier:740
+msgid "Really purge all completed jobs? Are you sure?"
 msgstr ""
 
-#: glacier:757
-msgid "Инициализируем БД..."
+#: glacier:743
+msgid "%d completed jobs purged\\n"
 msgstr ""
 
-#: glacier:781
-msgid "Не могу проинициализировать базу данных!"
+#: glacier:762
+msgid "You should specify what are going to purge: files|jobs|all"
 msgstr ""
 
-#: glacier:790
-msgid "скрипт для выполнения операций с хранилищем AWS Glacier"
-msgstr ""
-
-#: glacier:792
-msgid "  Варианты использования скрипта:"
-msgstr ""
-
-#: glacier:793
-msgid "загрузить файл(-ы) в хранилище"
-msgstr ""
-
-#: glacier:794
-msgid "показать листинг каталога (что у нас уже загружено)"
-msgstr ""
-
-#: glacier:795
-msgid "показывать все файлы (в том числе и удаленные)"
-msgstr ""
-
-#: glacier:796
-msgid "то же самое, что и \"ls\""
-msgstr ""
-
-#: glacier:797
-msgid "удалить архив(-ы) из хранилища"
-msgstr ""
-
-#: glacier:798
-msgid "то же самое, что и \"rm\""
-msgstr ""
-
-#: glacier:799
-msgid "запросить выгрузку файла(-ов) из хранилища"
-msgstr ""
-
-#: glacier:800
-msgid "запросить инвентаризацию хранилища"
+#: glacier:777
+msgid "Initializing DB..."
 msgstr ""
 
 #: glacier:801
-msgid "выгрузить файла(-ов) из хранилища (после выполнения запроса)"
-msgstr ""
-
-#: glacier:802
-msgid "выгрузить файл под другим именем/в другое место"
-msgstr ""
-
-#: glacier:803
-msgid "показать результаты инвентаризации"
-msgstr ""
-
-#: glacier:804
-msgid "запросить инвентаризацию, то же, что \"request -\""
-msgstr ""
-
-#: glacier:805
-msgid "запросить новую инвентаризацию, даже если предыдущий запрос значится невыполненным"
-msgstr ""
-
-#: glacier:806
-msgid "проверить результат выполнения запроса и в случае успеха сохранить его в БД"
-msgstr ""
-
-#: glacier:807
-msgid "синхронизировать каталог с результатами последней инвентаризации"
-msgstr ""
-
-#: glacier:808
-msgid "выполнить проверку на расхождение, но не писать ничего в БД"
-msgstr ""
-
-#: glacier:809
-msgid "автоматически подразумевать положительный ответ на все вопросы"
-msgstr ""
-
-#: glacier:810
-msgid "показать список заданий на выгрузку файлов и инвентаризацию"
+msgid "Could not initialize DB!"
 msgstr ""
 
 #: glacier:811
-msgid "показывать все задания (в том числе и завершенные)"
+msgid "utility script for manipulation with AWS Glacier storage"
 msgstr ""
 
-#: glacier:812
-msgid "вычистить из каталога удаленные файлы и/или выполненные задания"
+#: glacier:813
+msgid "  Usage:"
 msgstr ""
 
 #: glacier:814
-msgid "  Общие ключи для всех команд:"
+msgid "sends file(s) to Glacier"
 msgstr ""
 
 #: glacier:815
-msgid "отладочный режим"
+msgid "shows a directory listing (what is already uploaded)"
 msgstr ""
 
 #: glacier:816
-msgid "  Общие ключи для команд листинга и инвентаризации:"
+msgid "shows all files (including the deleted ones)"
 msgstr ""
 
 #: glacier:817
-msgid "длинный режим листинга каталога или инвентаризации"
+msgid "same as \"ls\""
 msgstr ""
 
 #: glacier:818
-msgid "еще более длинный режим листинга каталога или инвентаризации"
+msgid "removes files from Glacier"
 msgstr ""
 
-#: glacier:879
-msgid "База данных недоступна для чтения!"
+#: glacier:819
+msgid "same as \"rm\""
 msgstr ""
 
-#: glacier:905
-msgid "Команда request требует обязательного параметра (шаблон имени файла или \"-\")"
+#: glacier:820
+msgid "requests file download from Glacier"
+msgstr ""
+
+#: glacier:821
+msgid "requests Glacier inventory"
+msgstr ""
+
+#: glacier:822
+msgid "downloads file(s) from Glacier (after request is fulfilled)"
+msgstr ""
+
+#: glacier:823
+msgid "downloads file with the alternate name/to alternate location"
+msgstr ""
+
+#: glacier:824
+msgid "shows inventory results"
+msgstr ""
+
+#: glacier:825
+msgid "requests inventory, same as \"request -\""
+msgstr ""
+
+#: glacier:826
+msgid "requests a new inventory even if the previous one is marked as incomplete"
+msgstr ""
+
+#: glacier:827
+msgid "checks the last inventory request results and store them to DB if they are ready"
+msgstr ""
+
+#: glacier:828
+msgid "synchronizes directory with the last inventory results"
+msgstr ""
+
+#: glacier:829
+msgid "checks for mismatches but doesn't write anything to DB"
+msgstr ""
+
+#: glacier:830
+msgid "implies \"yes\" for all the questions"
+msgstr ""
+
+#: glacier:831
+msgid "shows the list of jobs (requests) for download or inventory"
+msgstr ""
+
+#: glacier:832
+msgid "shows all jobs (including the completed ones)"
+msgstr ""
+
+#: glacier:833
+msgid "purges deleted files and completed jobs from the directory"
+msgstr ""
+
+#: glacier:835
+msgid "  Common options for all comands:"
+msgstr ""
+
+#: glacier:836
+msgid "tells to use <CONFIG-FILE> instead of the predefined ones"
+msgstr ""
+
+#: glacier:837
+msgid "debugging mode"
+msgstr ""
+
+#: glacier:838
+msgid "  Common options for directory listing and inventory commands:"
+msgstr ""
+
+#: glacier:839
+msgid "long listing mode"
+msgstr ""
+
+#: glacier:840
+msgid "even longer listing mode"
+msgstr ""
+
+#: glacier:898
+msgid "Cannot read config file!"
+msgstr ""
+
+#: glacier:909
+msgid "No read access to DB!"
+msgstr ""
+
+#: glacier:935
+msgid "The \\\"request\\\" command requires a parameter (filename template or \\\"-\\\")"
 msgstr ""
