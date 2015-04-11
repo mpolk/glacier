@@ -52,3 +52,6 @@ glacier.pot:	glacier
 	fi; \
 	xgettext glacier -LShell -k -k_ --from-code=UTF-8 -d mpolk-glacier --no-wrap -o ${POTFILE}
 
+po:	ru.po
+%.po	: ${POTFILE}
+	msgmerge -U --backup=existing $@ ${POTFILE}
