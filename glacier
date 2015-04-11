@@ -113,6 +113,7 @@ parseJson() {
 makeFileFilter()
 {
     local FILTER=""
+    local FILENAME DIR
     if [ $# -gt 0 ]; then
 	while [ -n "$1" ]; do
 	    FILENAME=$(basename $1 | sed 's/\*/%/g; s/\?/_/g')
@@ -145,7 +146,7 @@ askYesNo() {
     [ -n "$ALWAYSYES" ] && return $S_OK
     
     read -p "$1 (y/N) "
-    SHOPT_RESTORE=$(shopt -p nocasematch)
+    local SHOPT_RESTORE=$(shopt -p nocasematch)
     shopt -qs nocasematch
     case $REPLY in
 	y|yes|д|да|1)
@@ -165,11 +166,11 @@ askYesNo() {
 upload() {
     assertRWAccess || return $E_FAIL
 
-    FILENAME=$(basename $1)
-    DIR=$(dirname $(readlink -e $1))
-    FSIZE=$(stat -L -c%s $1)
-    CTIME=$(stat -L -c%W $1)
-    MTIME=$(stat -L -c%Y $1)
+    local FILENAME=$(basename $1)
+    local DIR=$(dirname $(readlink -e $1))
+    local FSIZE=$(stat -L -c%s $1)
+    local CTIME=$(stat -L -c%W $1)
+    local MTIME=$(stat -L -c%Y $1)
     #read CHECKSUM DUMMY <<<$(sha256sum $1)
     echo -n "$1 -> $VAULT ... "
     REPLY=$(\
@@ -196,12 +197,12 @@ upload() {
 
 list() {
     trace "ARGS=\"$*\""
-    FILTER1=
+    local FILTER1=
     [ -z "$SHOWALL" ] && FILTER1='NOT is_deleted'
     trace "filter1=\"$FILTER1\""
-    FILTER2=$(makeFileFilter $@)
+    local FILTER2=$(makeFileFilter $@)
     trace "filter2=\"$FILTER2\""
-    FILTER=
+    local FILTER=
     if [ -n "$FILTER1" -o -n "$FILTER2" ]; then
 	FILTER="WHERE $FILTER1"
 	[ -n "$FILTER1" -a -n "$FILTER2" ] && FILTER="$FILTER AND"
@@ -215,12 +216,13 @@ list() {
 	    ;;
     esac
 
-    ROWS=$(\
+    local ROWS=$(\
 	sql "SELECT filename, dir, ctime, mtime, fsize, id, checksum, is_deleted FROM archives \
 		 $FILTER ORDER BY dir, filename" \
     )
-    N=0
-    TOTAL=0
+    local N=0
+    local TOTAL=0
+    local NAME DIR CTIME MTIME FSIZE ARCHIVE_ID CHECKSUM IS_DELETED
     [ -n "$ROWS" ] && while IFS="|" read NAME DIR CTIME MTIME FSIZE ARCHIVE_ID CHECKSUM IS_DELETED; do
 	CTIME=$(date --date=@$CTIME +"%Y-%m-%d %H:%M:%S")
 	MTIME=$(date --date=@$MTIME +"%Y-%m-%d %H:%M:%S")
@@ -252,10 +254,11 @@ list() {
 
 
 listJobs() {
-    FILTER=""
+    local FILTER=""
     [ -z "$SHOWALL" ] && FILTER="AND status = $JST_INPROGRESS"
-
     trace "filter=\"$FILTER\""
+
+    local ID TIME NAME DIR STATUS
     sql "SELECT jobs.id, submission_time, filename, dir, status FROM jobs \
 	    LEFT JOIN archives ON archives.id = jobs.archive_id
             WHERE jobs.vault_id = $VAULT_ID $FILTER ORDER BY submission_time" | \
@@ -334,7 +337,7 @@ remove() {
 requestInventory() {
     assertRWAccess || return $E_FAIL
     
-    COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
+    local COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ $COUNT != 0 -a -z "$FORCE" ]; then
 	_ "Inventory request already sent to AWS."
 	_ "Sending another request usually does not make any sense."
@@ -342,7 +345,7 @@ requestInventory() {
 	return $E_ALREADYEXISTS
     fi
 
-    REPLY=$(\
+    local REPLY=$(\
 	aws glacier initiate-job --account-id=- --output=json $DEBUG \
 	    --vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
 	    --job-parameters="{\"Type\": \"inventory-retrieval\", \"Format\": \"CSV\"}" \
@@ -352,6 +355,7 @@ requestInventory() {
 	return $E_FAIL
     fi
 
+    local JOB_ID LOCATION
     parseJson JOB_ID:jobId LOCATION:location <<< "$REPLY"
 
     [ $COUNT != 0 ] && sql "UPDATE jobs SET status = $JST_CANCELLED \
@@ -384,6 +388,7 @@ loadInventory() {
 	return $E_FAIL
     fi
 
+    local COMPLETED
     parseJson COMPLETED:Completed <<< "$REPLY"
     trace "COMPLETED=$COMPLETED"
     if [ "$COMPLETED" != "true" ]; then
@@ -406,7 +411,7 @@ loadInventory() {
 	BEGIN;
 	DELETE FROM inventory WHERE vault_id = $VAULT_ID;
 	"
-    I=0
+    local I=0 LINE ARCHIVE_ID DESCRIPTION CTIME SIZE CHECKSUM
     while read LINE; do
 	((I++ == 0)) && continue
 	trace $LINE
@@ -439,7 +444,7 @@ loadInventory() {
 checkInventoryInternal()
 {
     INVENTORY_TIME=$(sql "SELECT inventory_time FROM vaults WHERE id = $VAULT_ID")
-    COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
+    local COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ -z "$INVENTORY_TIME" -a $COUNT == 0 ]; then
 	_ "No inventory was completed yet."
 	_ "Now inventory will be requested."
@@ -465,7 +470,7 @@ checkInventoryInternal()
 
 checkInventory()
 {
-    COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
+    local COUNT=$(sql "SELECT count(1) FROM jobs WHERE vault_id = $VAULT_ID AND archive_id IS NULL AND status = $JST_INPROGRESS") #"
     if [ $COUNT == 0 ]; then
 	_ "Currently there are no outstanding inventory requests"
 	return $E_FAIL
@@ -476,13 +481,13 @@ checkInventory()
 
 
 showInventory() {
+    local INVENTORY_TIME
     checkInventoryInternal || return $?
 
     printf "$(_ "Inventory of %s\n")" "$(date --date=@$INVENTORY_TIME +"%Y-%m-%d %H:%M")"
     echo
-    N=0
-    TOTAL=0
-    ROWS=$(sql "SELECT archive_id, description, ctime, size, checksum FROM inventory \
+    local N=0 TOTAL=0 ARCHIVE_ID DESCRIPTION CTIME SIZE CHECKSUM
+    local ROWS=$(sql "SELECT archive_id, description, ctime, size, checksum FROM inventory \
 	             WHERE vault_id = $VAULT_ID ORDER BY seq_no")
     while IFS='|' read ARCHIVE_ID DESCRIPTION CTIME SIZE CHECKSUM; do
 	CTIME=$(date --date=@$CTIME +"%Y-%m-%d %H:%M:%S")
@@ -507,12 +512,15 @@ showInventory() {
 
 synchronize() {
     [ -z "$CHECKONLY" ] && ! assertRWAccess && return $E_FAIL
+    local INVENTORY_TIME
     checkInventoryInternal || return $?
 
-    ROWS=$(\
+    local ROWS=$(\
 	sql "SELECT archive_id, description, size, checksum FROM inventory \
 		 WHERE vault_id = $VAULT_ID ORDER BY seq_no" \
     )
+    local ARCHIVE_ID DESCRIPTION SIZE CHECKSUM CAT_ROW NAME DIR
+    local NAME0 DIR0 CHECKSUM0 FSIZE0 IS_DELETED
     while IFS='|' read -u3 ARCHIVE_ID DESCRIPTION SIZE CHECKSUM; do
 	CAT_ROW=$(sql "SELECT filename, dir, checksum, fsize, is_deleted FROM archives \
 	                  WHERE id = '$ARCHIVE_ID'")
@@ -598,18 +606,19 @@ synchronize() {
 requestDownload() {
     assertRWAccess || return $E_FAIL
     trace "ARGS=\"$*\""
-    FILTER=$(makeFileFilterWithAnd $@)
+    local FILTER=$(makeFileFilterWithAnd $@)
     trace "filter=\"$FILTER\""
 
-    ROWS=$(sql "SELECT id, filename, dir FROM archives WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER")
+    local ROWS=$(sql "SELECT id, filename, dir FROM archives WHERE NOT is_deleted AND vault_id = $VAULT_ID $FILTER")
     if [ -z "$ROWS" ]; then
 	_ "There is no such file(s) in the directory!"
 	return $E_FAIL
     fi
 
+    local ARCHIVE_ID NAME DIR
     while IFS='|' read ARCHIVE_ID NAME DIR; do
 	[ -n "$DIR" ] && DIR="$DIR/"
-	COUNT=$(sql "SELECT count(1) FROM jobs WHERE archive_id = '$ARCHIVE_ID' AND status = $JST_INPROGRESS") #"
+	local COUNT=$(sql "SELECT count(1) FROM jobs WHERE archive_id = '$ARCHIVE_ID' AND status = $JST_INPROGRESS") #"
 	if [ $COUNT != 0 -a -z "$FORCE" ]; then
 	    printf "$(_ "Download request for the file %s%s already sent to AWS.\n")" "$DIR" "$NAME"
 	    _ "Sending another request usually does not make any sense."
@@ -617,7 +626,7 @@ requestDownload() {
 	    continue
 	fi
 
-	REPLY=$(\
+	local REPLY=$(\
 	    aws glacier initiate-job --account-id=- --output=json $DEBUG \
 		--vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
 		--job-parameters="{\"Type\": \"archive-retrieval\", \"ArchiveId\": \"$ARCHIVE_ID\"}" \
@@ -627,6 +636,7 @@ requestDownload() {
 	    return $E_FAIL
 	fi
 
+	local JOB_ID LOCATION
 	parseJson JOB_ID:jobId LOCATION:location <<< "$REPLY"
 
 	[ $COUNT != 0 ] && sql "UPDATE jobs SET status = $JST_CANCELLED
@@ -644,16 +654,16 @@ download() {
     assertRWAccess || return $E_FAIL
     trace "ARGS=\"$*\""
 
-    QUERY="SELECT jobs.id, filename, dir FROM jobs \
+    local QUERY="SELECT jobs.id, filename, dir FROM jobs \
                JOIN archives ON archives.id = jobs.archive_id
                WHERE jobs.vault_id = $VAULT_ID AND status = $JST_INPROGRESS"
     if [ -n "$1" ]; then
-        FILTER=$(makeFileFilterWithAnd $@)
+        local FILTER=$(makeFileFilterWithAnd $@)
         trace "filter=\"$FILTER\""
 	QUERY="$QUERY $FILTER"
     fi
 
-    ROWS=$(sql "$QUERY")
+    local ROWS=$(sql "$QUERY")
     if [ -z "$ROWS" ]; then
     	if [ -z "$1" ]; then
 	    _ "Currently there are no outstanding download requests!"
@@ -664,9 +674,10 @@ download() {
 	return $E_FAIL
     fi
 
+    local JOB_ID NAME DIR
     while IFS='|' read JOB_ID NAME DIR; do
 	[ -n "$DIR" ] && DIR="$DIR/"
-	REPLY=$(\
+	local REPLY=$(\
 	    aws glacier describe-job --account-id=- --output=json $DEBUG \
 		--vault-name="$VAULT" --region="$AWS_DEFAULT_REGION" \
 		--job-id="$JOB_ID" \
@@ -677,6 +688,7 @@ download() {
 	    return $E_FAIL
 	fi
 
+	local COMPLETED
 	parseJson COMPLETED:Completed <<< "$REPLY"
 	trace "COMPLETED=$COMPLETED"
 	if [ "$COMPLETED" != "true" ]; then
@@ -691,8 +703,7 @@ download() {
 	else
 	    FILE=$OUTFILE
 	fi
-	I=1
-	FILE_ORIG=$FILE
+	local I=1 FILE_ORIG=$FILE
 	while [ -a "$FILE" ]; do
 	    FILE="$FILE_ORIG.((I++))"
 	done
@@ -717,7 +728,7 @@ download() {
 
 
 purgeFiles() {
-    COUNT=$(sql "SELECT count(1) FROM archives WHERE is_deleted")
+    local COUNT=$(sql "SELECT count(1) FROM archives WHERE is_deleted")
     if [ $COUNT == 0 ]; then
 	_ "No deleted files found"
 	return $E_NOSUCHOBJECT
@@ -731,7 +742,7 @@ purgeFiles() {
 
 
 purgeJobs() {
-    COUNT=$(sql "SELECT count(1) FROM jobs WHERE status <> 0")
+    local COUNT=$(sql "SELECT count(1) FROM jobs WHERE status <> 0")
     if [ $COUNT == 0 ]; then
 	_ "No completed jobs found"
 	return $E_NOSUCHOBJECT
@@ -745,8 +756,7 @@ purgeJobs() {
 
 
 purge() {
-    PURGE_FILES=
-    PURGE_JOBS=
+    local PURGE_FILES="" PURGE_JOBS=""
     case "$1" in
 	al|all)
 	    PURGE_FILES=1
