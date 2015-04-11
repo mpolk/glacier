@@ -19,9 +19,15 @@
 # SOFTWARE.
 #----------------------------------------------------------------------------------
 
+instroot = /usr/local
+confdir = ${instroot}/etc
+bindir = ${instroot}/bin
+localedir = /usr/share/locale
+POTFILE=glacier.pot
+
 all: ru.mo
 
-ru.mo: ru.po
+%.mo: %.po
 	msgfmt $< -o $@
 
 install: all
@@ -31,4 +37,18 @@ install: all
 	    install -o root -g root -m 644 -p glacier.conf /usr/local/etc/; \
 	fi
 	install -o root -g root -m 755 -p glacier /usr/local/bin/
-	install -o root -g root -m 644 -p ru.mo /usr/share/locale/ru/LC_MESSAGES/mpolk-glacier.mo
+	install -o root -g root -m 644 -p ru.mo ${locale}/ru/LC_MESSAGES/mpolk-glacier.mo
+
+pot:	${POTFILE}
+glacier.pot:	glacier
+	if [ -f ${POTFILE} ]; then \
+	    BACKUP=${POTFILE}; \
+	    I="";\
+	    while [ -f $$BACKUP ]; do \
+		BACKUP=${POTFILE}.bak$$I; \
+		I=$$(($${I:-0} + 1)); \
+	    done; \
+	    mv ${POTFILE} $$BACKUP; \
+	fi; \
+	xgettext glacier -LShell -k -k_ --from-code=UTF-8 -d mpolk-glacier --no-wrap -o ${POTFILE}
+
