@@ -185,6 +185,7 @@ upload() {
     fi
     echo OK
 
+    local ARCHIVE_ID CHECKSUM LOCATION
     parseJson ARCHIVE_ID:archiveId CHECKSUM:checksum LOCATION:location <<< "$REPLY"
 
     sql "INSERT INTO archives(id, vault_id, filename, dir, fsize, ctime, mtime, checksum, location) \
