@@ -19,7 +19,7 @@ install: all
 	    install -o root -g root -m 644 -p glacier.conf /usr/local/etc/; \
 	fi
 	install -o root -g root -m 755 -p glacier /usr/local/bin/
-	install -o root -g root -m 644 -p ru.mo ${locale}/ru/LC_MESSAGES/mpolk-glacier.mo
+	install -o root -g root -m 644 -p ru.mo ${localedir}/ru/LC_MESSAGES/mpolk-glacier.mo
 
 pot:	${POTFILE}
 glacier.pot:	glacier
