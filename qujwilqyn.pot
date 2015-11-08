@@ -1,20 +1,20 @@
-# qujwilqyn - a bash script for manipulating with Amazon Web Services Glacier storage
-# Copyright (C) 2015 Dmitriy Stepanenko
-# This file is distributed under the same license as the mpolk/qujwilqyn package.
-# FIRST AUTHOR Dmitriy Stepanenko <dmitriy.stepanenko@gmail.com>, 2015.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: mpolk/qujwilqyn 0.1\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-03-21 14:58+0200\n"
+"POT-Creation-Date: 2015-11-08 22:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: Dmitriy Stepanenko <dmitriy.stepanenko@gmail.com>\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "Language: \n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
 #: qujwilqyn:58

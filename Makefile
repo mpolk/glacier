@@ -13,12 +13,12 @@ all: ru.mo
 	msgfmt $< -o $@
 
 install: all
-	if [ -e /usr/local/etc/qujwilqyn.conf ]; then \
-	    install -o root -g root -m 644 -p qujwilqyn.conf /usr/local/etc/qujwilqyn.conf.new; \
+	if [ -e ${confdir}/qujwilqyn.conf ]; then \
+	    install -o root -g root -m 644 -p qujwilqyn.conf ${confdir}/qujwilqyn.conf.new; \
 	else \
-	    install -o root -g root -m 644 -p qujwilqyn.conf /usr/local/etc/; \
+	    install -o root -g root -m 644 -p qujwilqyn.conf ${confdir}/; \
 	fi
-	install -o root -g root -m 755 -p qujwilqyn /usr/local/bin/
+	install -o root -g root -m 755 -p qujwilqyn ${bindir}/
 	install -o root -g root -m 644 -p ru.mo ${localedir}/ru/LC_MESSAGES/qujwilqyn.mo
 
 pot:	${POTFILE}
