@@ -48,7 +48,7 @@ readonly JST_CANCELLED=3
 
 # Shortcut for GNU gettext invocation
 _() {
-    gettext -d mpolk-glacier -s "$*"
+    gettext -d mpolk-qujwilqyn -s "$*"
 } #_
 
 

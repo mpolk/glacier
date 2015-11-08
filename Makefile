@@ -1,11 +1,11 @@
 # Copyright (C) 2015 Dmitriy Stepanenko
-# This file is distributed under the same license as the mpolk/glacier package.
+# This file is distributed under the same license as the mpolk/qujwilqyn package.
 
 instroot = /usr/local
 confdir = ${instroot}/etc
 bindir = ${instroot}/bin
 localedir = /usr/share/locale
-POTFILE=glacier.pot
+POTFILE=qujwilqyn.pot
 
 all: ru.mo
 
@@ -13,16 +13,16 @@ all: ru.mo
 	msgfmt $< -o $@
 
 install: all
-	if [ -e /usr/local/etc/glacier.conf ]; then \
-	    install -o root -g root -m 644 -p glacier.conf /usr/local/etc/glacier.conf.new; \
+	if [ -e /usr/local/etc/qujwilqyn.conf ]; then \
+	    install -o root -g root -m 644 -p qujwilqyn.conf /usr/local/etc/qujwilqyn.conf.new; \
 	else \
-	    install -o root -g root -m 644 -p glacier.conf /usr/local/etc/; \
+	    install -o root -g root -m 644 -p qujwilqyn.conf /usr/local/etc/; \
 	fi
-	install -o root -g root -m 755 -p glacier /usr/local/bin/
-	install -o root -g root -m 644 -p ru.mo ${localedir}/ru/LC_MESSAGES/mpolk-glacier.mo
+	install -o root -g root -m 755 -p qujwilqyn /usr/local/bin/
+	install -o root -g root -m 644 -p ru.mo ${localedir}/ru/LC_MESSAGES/qujwilqyn.mo
 
 pot:	${POTFILE}
-glacier.pot:	glacier
+qujwilqyn.pot:	qujwilqyn
 	if [ -f ${POTFILE} ]; then \
 	    BACKUP=${POTFILE}; \
 	    I="";\
@@ -32,7 +32,7 @@ glacier.pot:	glacier
 	    done; \
 	    mv ${POTFILE} $$BACKUP; \
 	fi; \
-	xgettext glacier -LShell -k -k_ --from-code=UTF-8 -d mpolk-glacier --no-wrap -o ${POTFILE}
+	xgettext qujwilqyn -LShell -k -k_ --from-code=UTF-8 -d qujwilqyn --no-wrap -o ${POTFILE}
 
 po:	ru.po
 %.po	: ${POTFILE}

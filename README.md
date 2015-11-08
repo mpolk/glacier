@@ -1,4 +1,4 @@
-# glacier
+# qujwilqyn (former glacier)
 Yet another tool for manipulating with AWS Glacier.
 
 It is a bash-script and it uses SQLite for maintaining the local DB keeping track of the archives 
