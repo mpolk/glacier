@@ -936,6 +936,11 @@ case $CMD in
 	shift
 	list $@
 	;;
+    ll)
+	LSMODE=LONG
+	shift
+	list $@
+	;;
     rm|del)
 	shift
 	remove $@
