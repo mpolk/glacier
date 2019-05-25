@@ -408,10 +408,11 @@ loadInventory() {
 	return $E_FAIL
     fi
 
-    local QUERY="
+    local TMPFILE2=$(mktemp --tmpdir glacier-inventory-XXXXXXXX.sql)
+    echo "
 	BEGIN;
 	DELETE FROM inventory WHERE vault_id = $VAULT_ID;
-	"
+	" > $TMPFILE2
     local I=0 LINE ARCHIVE_ID DESCRIPTION CTIME SIZE CHECKSUM
     while read LINE; do
 	((I++ == 0)) && continue
@@ -425,19 +426,19 @@ loadInventory() {
 	trace "CTIME=$CTIME"
 	trace "SIZE=$SIZE"
 	trace "CHECKSUM=$CHECKSUM"
-	QUERY="$QUERY
+	echo "
 	    INSERT INTO inventory(vault_id, seq_no, archive_id, description, ctime, size, checksum)
 		VALUES ($VAULT_ID, $I, '$ARCHIVE_ID', '$DESCRIPTION', $CTIME, $SIZE, '$CHECKSUM');
-	"
+	" >> $TMPFILE2
     done < $TMPFILE
 
-    QUERY="$QUERY
+    echo "
 	UPDATE jobs SET status = $JST_COMPLETED WHERE id = '$JOB_ID';
         UPDATE vaults SET inventory_time = $(date +%s);
-	COMMIT"
-    trace $QUERY
-    sql $QUERY
-    rm $TMPFILE
+	COMMIT" >> $TMPFILE2
+    trace $(cat $TMPFILE2)
+    sqlite3 $DB < $TMPFILE2
+    rm $TMPFILE $TMPFILE2
     return $S_OK
 } #loadInventory
 
